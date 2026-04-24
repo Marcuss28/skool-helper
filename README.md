@@ -20,7 +20,7 @@ Alles offline, alle Daten bleiben lokal im Browser-Storage. Kein Tracking, keine
 
 ## Installation
 
-1. [Neuestes Release](https://github.com/YOUR-USER/skool-helper/releases/latest) herunterladen (`skool-helper.zip`).
+1. [Neuestes Release](https://github.com/marcuss28/skool-helper/releases/latest) herunterladen (`skool-helper.zip`).
 2. ZIP entpacken.
 3. In Chrome/Edge/Brave: Adressleiste `chrome://extensions` öffnen.
 4. **Entwicklermodus** oben rechts einschalten.
@@ -54,7 +54,7 @@ Die Extension macht **keine** externen Netzwerk-Requests. Alle Daten (Keywords, 
 Issues und Pull Requests willkommen.
 
 ```
-git clone https://github.com/YOUR-USER/skool-helper.git
+git clone https://github.com/marcuss28/skool-helper.git
 cd skool-helper
 # In chrome://extensions "Entpackte Erweiterung laden" und diesen Ordner auswählen
 ```
