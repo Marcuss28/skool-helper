@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<title>Skool Helper – Einstellungen</title>
+<link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <header>
+    <h1>Skool Helper – Einstellungen</h1>
+    <p>Keywords, Kommentar-Vorlagen, Communities und Benachrichtigungen konfigurieren. Änderungen am Sprachfilter und an der Sprache einer Community werden automatisch gespeichert.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Keywords</h2>
+      <p class="hint">
+        Posts, deren Text eines dieser Keywords enthält, werden markiert und in die Priority-Liste aufgenommen.
+        Eines pro Zeile. Groß-/Kleinschreibung wird ignoriert.
+      </p>
+      <textarea id="keywords" rows="6" placeholder="youtube&#10;bilder&#10;videos&#10;todo&#10;prompt"></textarea>
+    </section>
+
+    <section>
+      <h2>Kommentar-Vorlagen</h2>
+      <p class="hint">
+        Diese Vorschläge werden im Sidebar-Panel angeboten. Eines pro Zeile. Du sendest Kommentare weiterhin manuell ab.
+      </p>
+      <textarea id="templates" rows="8"></textarea>
+    </section>
+
+    <section>
+      <h2>Communities (Rundlauf)</h2>
+      <p class="hint">
+        Communities werden automatisch erfasst, sobald du eine öffnest, oder wenn sie in deiner Skool-Navigation auftauchen.
+        Hier siehst du die gespeicherte Liste - du kannst Einträge entfernen, Slugs manuell hinzufügen oder die Sprache pro Community festlegen.
+      </p>
+
+      <label class="field-label">Sprachfilter für "Noch offen heute" (Auto-Save):</label>
+      <select id="languageFilter">
+        <option value="all">Alle Communities anzeigen</option>
+        <option value="de">Nur deutschsprachige</option>
+        <option value="en">Nur englischsprachige</option>
+        <option value="de_unknown">Deutsch + unbekannt</option>
+      </select>
+      <label class="check" style="margin:6px 0 12px;">
+        <input type="checkbox" id="membersOnly" />
+        Nur eigene Mitgliedschaften im Rundlauf zeigen (Auto-Save)
+      </label>
+      <div id="communities-list" class="communities-list"></div>
+      <label class="field-label">Slugs manuell hinzufügen:</label>
+      <textarea id="communities-add" rows="3" placeholder="ai-content-creation&#10;deine-andere-community"></textarea>
+      <div class="row-actions">
+        <button id="reset-communities" class="danger">Besuchs-Historie zurücksetzen</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Ausschluss-Keywords</h2>
+      <p class="hint">
+        Posts, deren Text eines dieser Keywords enthält, werden ausgegraut (nicht versteckt).
+        Gut gegen immer wiederkehrende Spam-Themen oder Promo-Posts. Eines pro Zeile.
+      </p>
+      <textarea id="excludedKeywords" rows="4" placeholder="werbung&#10;promo"></textarea>
+    </section>
+
+    <section>
+      <h2>Ausschluss-Autoren</h2>
+      <p class="hint">
+        Posts dieser Autoren werden ausgegraut. Ein Name pro Zeile, Groß-/Kleinschreibung egal.
+        Teilstrings sind okay: "calvin" erwischt "Calvin Hollywood" genauso.
+      </p>
+      <textarea id="excludedAuthors" rows="3" placeholder="calvin hollywood&#10;promo-autor"></textarea>
+    </section>
+
+    <section>
+      <h2>Anzeige-Extras (optional)</h2>
+      <label class="check">
+        <input type="checkbox" id="showTimer" />
+        Session-Timer im Sidebar-Footer anzeigen (⏱ Minuten auf dieser Seite)
+      </label>
+      <label class="check">
+        <input type="checkbox" id="showEngagement" />
+        Engagement-Log im Sidebar-Footer (heute besuchte Communities &amp; Priority-Treffer)
+      </label>
+    </section>
+
+    <section>
+      <h2>Darstellung &amp; Benachrichtigungen</h2>
+      <label class="check">
+        <input type="checkbox" id="sidebarVisible" />
+        Sidebar auf Skool anzeigen
+      </label>
+      <label class="check">
+        <input type="checkbox" id="notifyOnMatch" />
+        Desktop-Benachrichtigung bei neuen priorisierten Posts (nur wenn Skool-Tab nicht aktiv)
+      </label>
+    </section>
+
+    <section>
+      <h2>Tägliche Zusammenfassung</h2>
+      <p class="hint">
+        Exportiere eine Markdown-Datei mit allen priorisierten Posts der letzten 24 Stunden, gruppiert nach Community.
+        Die Datei landet im Download-Ordner deines Browsers.
+      </p>
+      <div class="row-actions">
+        <button id="export-summary">Zusammenfassung herunterladen</button>
+        <button id="export-weekly">Wochen-Zusammenfassung (7 Tage)</button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="save" class="primary">Speichern</button>
+      <button id="reset">Zurücksetzen</button>
+      <span id="status" class="status"></span>
+    </div>
+  </main>
+
+  <footer>
+    <p>Tipp: Nach dem Speichern reicht ein Reload der Skool-Seite, damit die neuen Einstellungen greifen. Sprachfilter und Sprache pro Community werden sofort und ohne Klick übernommen.</p>
+  </footer>
+
+  <script src="options.js"></script>
+</body>
+</html>

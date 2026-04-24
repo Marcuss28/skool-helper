@@ -1,0 +1,23 @@
+name: Release ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ZIP
+        run: |
+          mkdir -p dist
+          zip -r dist/skool-helper.zip . -x "*.git*" "*.github*" "dist/*" "*.md" "LICENSE"
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/skool-helper.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
