@@ -1,4 +1,4 @@
-# Skool Helper
+﻿# Skool Helper
 
 Chrome-Extension für Skool-Poweruser: markiert Posts mit deinen Keywords, zeigt welche Communities du heute noch checken solltest, und sammelt interessante Beiträge in einer 7-Tage-Übersicht. Spart pro Tag locker 15 Minuten, wenn du in 5+ Communities aktiv bist. Läuft offline, keine API, keine Auto-Likes &mdash; du bleibst Herr deiner Interaktionen.
 
@@ -20,7 +20,7 @@ Alles offline, alle Daten bleiben lokal im Browser-Storage. Kein Tracking, keine
 
 ## Installation
 
-1. [Neuestes Release](https://github.com/YOUR-USER/skool-helper/releases/latest) herunterladen (`skool-helper.zip`).
+1. [Neuestes Release](https://github.com/Marcuss28/skool-helper/releases/latest/download/skool-helper.zip) herunterladen.
 2. ZIP entpacken.
 3. In Chrome/Edge/Brave: Adressleiste `chrome://extensions` öffnen.
 4. **Entwicklermodus** oben rechts einschalten.
@@ -54,7 +54,7 @@ Die Extension macht **keine** externen Netzwerk-Requests. Alle Daten (Keywords, 
 Issues und Pull Requests willkommen.
 
 ```
-git clone https://github.com/YOUR-USER/skool-helper.git
+git clone https://github.com/Marcuss28/skool-helper.git
 cd skool-helper
 # In chrome://extensions "Entpackte Erweiterung laden" und diesen Ordner auswählen
 ```
