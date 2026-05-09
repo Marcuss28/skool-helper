@@ -18,6 +18,7 @@ async function load() {
   if ($("excludedAuthors")) $("excludedAuthors").value = (sync.excludedAuthors || []).join("\n");
   if ($("showTimer")) $("showTimer").checked = sync.showTimer === true;
   if ($("showEngagement")) $("showEngagement").checked = sync.showEngagement === true;
+  if ($("checkForUpdates")) $("checkForUpdates").checked = sync.checkForUpdates !== false;
 
   const local = await chrome.storage.local.get({ communities: {} });
   renderCommunities(local.communities || {});
@@ -105,7 +106,8 @@ async function save() {
     excludedKeywords: parseList(($("excludedKeywords") || {value: ""}).value).map(s => s.toLowerCase()),
     excludedAuthors: parseList(($("excludedAuthors") || {value: ""}).value).map(s => s.toLowerCase()),
     showTimer: $("showTimer") ? $("showTimer").checked === true : false,
-    showEngagement: $("showEngagement") ? $("showEngagement").checked === true : false
+    showEngagement: $("showEngagement") ? $("showEngagement").checked === true : false,
+    checkForUpdates: $("checkForUpdates") ? $("checkForUpdates").checked === true : true
   };
   await chrome.storage.sync.set(payload);
 
@@ -259,7 +261,24 @@ async function importBackupFromFile(file) {
   }
 }
 
+async function applyUpdateBadge() {
+  try {
+    const v = chrome.runtime.getManifest().version;
+    const badge = document.getElementById("version-badge");
+    if (!badge) return;
+    const { updateInfo } = await chrome.storage.local.get({ updateInfo: null });
+    const hasUpdate = updateInfo && updateInfo.updateAvailable === true && updateInfo.latestVersion;
+    if (hasUpdate) {
+      badge.innerHTML = `<a href="${updateInfo.url || `https://github.com/Marcuss28/skool-helper/releases/latest`}" target="_blank" rel="noopener" class="version-update" title="Update verfügbar: v${updateInfo.latestVersion}">v${v} → v${updateInfo.latestVersion}</a>`;
+    } else {
+      badge.textContent = "v" + v;
+    }
+  } catch (e) {}
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  applyUpdateBadge();
+
   load();
   $("save").addEventListener("click", save);
   $("reset").addEventListener("click", reset);
@@ -293,4 +312,39 @@ document.addEventListener("DOMContentLoaded", () => {
       showStatus("Sprachfilter übernommen");
     });
   }
+
+  const checkUpdatesChk = $("checkForUpdates");
+  if (checkUpdatesChk) {
+    checkUpdatesChk.addEventListener("change", async () => {
+      await chrome.storage.sync.set({ checkForUpdates: checkUpdatesChk.checked === true });
+      showStatus("Update-Check " + (checkUpdatesChk.checked ? "aktiviert" : "deaktiviert"));
+    });
+  }
+  const checkNowBtn = $("check-now");
+  if (checkNowBtn) {
+    checkNowBtn.addEventListener("click", () => {
+      const status = $("update-status");
+      if (status) status.textContent = "Suche…";
+      chrome.runtime.sendMessage({ type: "check-for-updates" }, async () => {
+        await applyUpdateBadge();
+        const { updateInfo } = await chrome.storage.local.get({ updateInfo: null });
+        if (status) {
+          if (updateInfo && updateInfo.updateAvailable) {
+            status.textContent = `Update verfügbar: v${updateInfo.latestVersion}`;
+          } else if (updateInfo && updateInfo.latestVersion) {
+            status.textContent = `Aktuelle Version: v${updateInfo.latestVersion}`;
+          } else {
+            status.textContent = "Konnte nicht prüfen (Netzwerk?)";
+          }
+          setTimeout(() => { status.textContent = ""; }, 4000);
+        }
+      });
+    });
+  }
+
+  // Storage-Listener: wenn Background den Update-Check abgeschlossen hat,
+  // Badge live aktualisieren ohne Reload.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.updateInfo) applyUpdateBadge();
+  });
 });

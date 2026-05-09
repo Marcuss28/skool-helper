@@ -1,6 +1,16 @@
 /**
- * Skool Helper – Content Script (v0.5.2)
+ * Skool Helper – Content Script (v0.6.0)
  *
+ * v0.6.0: Update-Check (opt-in, default an) — Background-Worker prueft 1x
+ *         taeglich gegen die GitHub-Releases-API, ob ein neueres Release
+ *         verfuegbar ist. Bei Update wird die Versionsnummer im Footer
+ *         fett+gelb und klickbar (oeffnet Release-Seite). Per Toggle in
+ *         den Options abschaltbar. Neue Permissions: alarms +
+ *         host_permission api.github.com.
+ * v0.5.3: Versionsnummer sichtbar — im Sidebar-Footer (klein, rechts neben
+ *         dem Standardtext) und im Options-Header (neben "Einstellungen").
+ *         Liest aus chrome.runtime.getManifest().version, damit nur die
+ *         manifest.json bei Releases angefasst werden muss.
  * v0.5.2: Bugfix — Community-Namen wurden auf Detail-/Settings-/Leaderboard-
  *         Seiten mit dem Seitentitel ueberschrieben (Folge: "Change password",
  *         Post-Titel etc. tauchten als Community-Namen im Round-Robin auf).
@@ -123,10 +133,11 @@
       state.showTimer = sync.showTimer === true;
       state.showEngagement = sync.showEngagement === true;
 
-      const local = await chrome.storage.local.get({ communities: {}, bookmarks: {}, postHistory: {} });
+      const local = await chrome.storage.local.get({ communities: {}, bookmarks: {}, postHistory: {}, updateInfo: null });
       state.communities = local.communities || {};
       state.bookmarks = local.bookmarks || {};
       state.postHistory = local.postHistory || {};
+      state.updateInfo = local.updateInfo || null;
       prunePostHistory();
     } catch (err) {
       console.warn("[Skool Helper] Konnte Config nicht laden:", err);
@@ -285,6 +296,10 @@
     if (area === "local" && changes.communities) {
       state.communities = changes.communities.newValue || {};
       renderRoundRobin();
+    }
+    if (area === "local" && changes.updateInfo) {
+      state.updateInfo = changes.updateInfo.newValue || null;
+      renderFooterStats();
     }
   });
 
@@ -1227,6 +1242,14 @@
     });
   }
 
+  // Versions-String wird einmalig aus manifest.json gelesen und gecached.
+  let __versionStr = "";
+  try {
+    if (chrome.runtime && chrome.runtime.getManifest) {
+      __versionStr = "v" + chrome.runtime.getManifest().version;
+    }
+  } catch (e) {}
+
   function renderFooterStats() {
     if (!sidebarEl) return;
     const foot = sidebarEl.querySelector("#sh-footer");
@@ -1246,10 +1269,21 @@
       const totalMatches = Object.values(state.sessionCounts).reduce((a, b) => a + b, 0);
       parts.push(`${todayVisited} Comm · ${totalMatches} Treffer`);
     }
-    if (parts.length > 0) {
-      foot.textContent = parts.join(" · ");
+    const main = parts.length > 0 ? parts.join(" · ") : "Keywords & Communities in den Einstellungen";
+    const update = state.updateInfo;
+    const hasUpdate = update && update.updateAvailable === true && update.latestVersion;
+    if (__versionStr) {
+      const versionClass = hasUpdate ? "sh-footer-version sh-footer-version-update" : "sh-footer-version";
+      const tooltip = hasUpdate
+        ? `Update verfuegbar: v${update.latestVersion} — klicken zum Oeffnen`
+        : "Aktuelle Version";
+      const versionLabel = hasUpdate ? `${__versionStr} →` : __versionStr;
+      const versionMarkup = hasUpdate
+        ? `<a class="${versionClass}" href="${escapeHtml(update.url || "")}" target="_blank" rel="noopener" title="${escapeHtml(tooltip)}">${escapeHtml(versionLabel)}</a>`
+        : `<span class="${versionClass}" title="${escapeHtml(tooltip)}">${escapeHtml(versionLabel)}</span>`;
+      foot.innerHTML = `<span class="sh-footer-main">${escapeHtml(main)}</span> ${versionMarkup}`;
     } else {
-      foot.textContent = "Keywords & Communities in den Einstellungen";
+      foot.textContent = main;
     }
   }
 

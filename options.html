@@ -7,7 +7,7 @@
 </head>
 <body>
   <header>
-    <h1>Skool Helper – Einstellungen</h1>
+    <h1>Skool Helper – Einstellungen <span id="version-badge"></span></h1>
     <p>Keywords, Kommentar-Vorlagen, Communities und Benachrichtigungen konfigurieren. Änderungen am Sprachfilter und an der Sprache einer Community werden automatisch gespeichert.</p>
   </header>
 
@@ -129,6 +129,23 @@
         Sidebar ein-/ausblenden mit <code>Alt+Shift+S</code>. In <code>chrome://extensions/shortcuts</code>
         kannst du den Shortcut anpassen, falls er mit einer anderen Extension kollidiert.
       </p>
+    </section>
+
+    <section>
+      <h2>Update-Check</h2>
+      <p class="hint">
+        Prüft einmal täglich gegen die GitHub-Releases-API, ob ein neueres Release verfügbar ist.
+        Wenn ja, wird die Versionsnummer im Sidebar-Footer und im Header dieser Seite fett und gelb dargestellt — ein Klick öffnet die Release-Seite.
+        Es werden keine Daten gesendet, nur der Versionsstand abgefragt.
+      </p>
+      <label class="check">
+        <input type="checkbox" id="checkForUpdates" />
+        Täglich nach neuen Versionen suchen
+      </label>
+      <div class="row-actions">
+        <button id="check-now">Jetzt suchen</button>
+        <span id="update-status" class="status"></span>
+      </div>
     </section>
 
     <div class="actions">

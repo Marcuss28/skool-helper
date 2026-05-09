@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.0 (2026-05-09)
+- Feature: **Update-Check** gegen GitHub Releases API. Einmal taeglich (per `chrome.alarms`) prueft der Background-Worker, ob ein neueres Release verfuegbar ist. Bei Update wird die Versionsnummer in Sidebar-Footer und Options-Header fett+gelb dargestellt und ist klickbar (oeffnet Release-Seite).
+- Options: Neuer Abschnitt "Update-Check" mit Toggle (default an) und "Jetzt suchen"-Button fuer manuelle Pruefung.
+- Permissions: Neu `alarms` (fuer den taeglichen Check) und `https://api.github.com/*` (fuer den Releases-Endpoint). Chrome wird beim Update einmalig um Bestaetigung der erweiterten Permissions bitten.
+- Privacy: README praezisiert — der Update-Check ist die einzige externe Anfrage und kann abgeschaltet werden.
+
+## v0.5.3 (2026-05-09)
+- UX: Versionsnummer im Sidebar-Footer (dezent rechts) und im Options-Header (neben "Einstellungen"). Beides liest live aus `manifest.json` ueber `chrome.runtime.getManifest()` — keine doppelte Pflege bei Releases.
+
 ## v0.5.2 (2026-05-09)
 - Bugfix: Community-Namen wurden auf Detail-, Settings- und Leaderboard-Seiten mit dem Seiten-`<h1>` ueberschrieben. Folge: Eintraege wie "Change password", "GPT 5.5" oder Post-Titel landeten als Community-Namen im Round-Robin. Ab jetzt werden Namen nur noch auf der Community-Root-Seite erfasst.
 - Selbstheilung: Nav-Scan ueberschreibt bestehende Namen aktiv aus der zuverlaessigen Skool-Drawer-Komponente. Falsche Namen aus pre-v0.5.2 korrigieren sich beim naechsten Skool-Besuch automatisch — ohne dass der User etwas tun muss.

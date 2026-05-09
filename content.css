@@ -1,4 +1,29 @@
-/* Skool Helper – Styles (v0.5.2) */
+/* Skool Helper – Styles (v0.6.0) */
+
+/* Update-Verfuegbar: fett + gelb, klickbar */
+#skool-helper-sidebar .sh-footer-version-update {
+  color: #fbbf24 !important;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+#skool-helper-sidebar a.sh-footer-version-update:hover {
+  text-decoration: underline;
+}
+
+/* Versions-Anzeige im Footer: dezent, rechts vom Hauptext */
+#skool-helper-sidebar .sh-footer-version {
+  color: #6b7280;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 6px;
+  flex: 0 0 auto;
+}
+#skool-helper-sidebar .sh-footer-main {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
 
 /* Round-Robin Punkte-Badge: dezent, in der Zeile zwischen Name und Time */
 #skool-helper-sidebar .sh-rr-points {

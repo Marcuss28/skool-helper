@@ -32,5 +32,6 @@ globalThis.SKOOL_HELPER_DEFAULTS = {
   excludedKeywords: [],
   excludedAuthors: [],
   showTimer: false,
-  showEngagement: false
+  showEngagement: false,
+  checkForUpdates: true
 };

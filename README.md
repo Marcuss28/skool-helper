@@ -47,7 +47,9 @@ Klick auf das Extension-Icon &rarr; **Einstellungen öffnen**, oder aus der Side
 
 ## Privacy
 
-Die Extension macht **keine** externen Netzwerk-Requests. Alle Daten (Keywords, Communities, Bookmarks, History) liegen ausschließlich in `chrome.storage.sync` und `chrome.storage.local` im Browser. Skool bekommt nicht mit, dass die Extension läuft &mdash; sie liest nur den DOM-Inhalt, den du sowieso siehst, und fügt eine Sidebar hinzu.
+Alle Daten (Keywords, Communities, Bookmarks, History) liegen ausschließlich in `chrome.storage.sync` und `chrome.storage.local` im Browser. Skool bekommt nicht mit, dass die Extension läuft &mdash; sie liest nur den DOM-Inhalt, den du sowieso siehst, und fügt eine Sidebar hinzu.
+
+Eine einzige Ausnahme: einmal täglich fragt der Background-Worker bei der GitHub-Releases-API (`api.github.com`) nach, ob eine neuere Version vorliegt. Es werden keine Nutzerdaten gesendet, nur die Anfrage selbst (mit Standard-User-Agent von Chrome). Diesen Update-Check kannst du in den Optionen abschalten.
 
 ## Entwicklung / Contributing
 

@@ -8,6 +8,22 @@ body {
   line-height: 1.5;
 }
 header h1 { margin: 0 0 4px; font-size: 22px; }
+header h1 #version-badge {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+header h1 #version-badge .version-update {
+  color: #fbbf24;
+  font-weight: 700;
+  text-decoration: none;
+}
+header h1 #version-badge .version-update:hover {
+  text-decoration: underline;
+}
 header p { margin: 0 0 24px; color: #9ca3af; }
 main { max-width: 760px; }
 section {
