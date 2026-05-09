@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.0 (2026-05-09)
+- Feature: **Punkte-zum-naechsten-Level** pro Community im Round-Robin. Beim Besuch einer Leaderboard-Seite (`/<community>/-/leaderboards`) liest der Helper Level und Punkte-zum-naechsten aus der GamificationProgress-Card und cached sie pro Community.
+- UX: Dezentes Badge `L5 · 332P` neben dem Community-Namen in der Sidebar. Tooltip zeigt Erfassungszeitpunkt.
+- UX: Veraltete Werte (>24h) werden gestrichelt und ausgegraut dargestellt — Erinnerung, mal wieder aufs Leaderboard zu schauen.
+- Cleanup: SKOOL_SEL um `gamificationProgress`, `pointsToGoWrapper`, `userInfoTitle` ergaenzt.
+
 ## v0.4.10 (2026-05-09)
 - Hygiene: Defaults zentralisiert in `defaults.js` — Single Source of Truth fuer Keywords, Templates und alle Settings-Defaults. Vorher 3x dupliziert in background.js, content.js, options.js.
 - Bugfix nebenbei: `chrome.runtime.onInstalled` setzte vorher nur 4 von 10 Default-Keys. Mit der Umstellung auf zentrale Defaults werden jetzt alle gesetzt.

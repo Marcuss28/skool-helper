@@ -1,4 +1,22 @@
-/* Skool Helper – Styles (v0.4.10) */
+/* Skool Helper – Styles (v0.5.0) */
+
+/* Round-Robin Punkte-Badge: dezent, in der Zeile zwischen Name und Time */
+#skool-helper-sidebar .sh-rr-points {
+  background: #1f2937;
+  color: #fbbf24;
+  border: 1px solid #4b5563;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+#skool-helper-sidebar .sh-rr-points-stale {
+  opacity: 0.55;
+  color: #9ca3af;
+  border-style: dashed;
+}
+
 
 /* Section-Counter im Header (z. B. "Gemerkt (12)") */
 #skool-helper-sidebar .sh-section-count {

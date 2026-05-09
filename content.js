@@ -1,6 +1,11 @@
 /**
- * Skool Helper – Content Script (v0.4.10)
+ * Skool Helper – Content Script (v0.5.0)
  *
+ * v0.5.0: Gamification — liest Level + Punkte zum naechsten Level pro
+ *         Community aus der Leaderboard-Card und zeigt sie als dezentes
+ *         Badge im Round-Robin (z. B. "L5 · 332P"). Stand wird gecached und
+ *         als veraltet markiert (gestrichelt) wenn aelter als 24 h.
+ *         Refresh automatisch bei jedem Besuch der Leaderboard-Seite.
  * v0.4.10: Code-Hygiene (Pfad D) — Defaults zentralisiert in defaults.js
  *          (vorher 3x dupliziert in background.js, content.js, options.js
  *          mit abweichendem Umfang in background.js). Single Source of Truth
@@ -518,11 +523,69 @@
     postedDate: '[class*="PostedDate"]',
     dateLabel: '[class*="DateAndLabelWrapper"]',
     detailHeader: '[class*="PostDetailHeader"]',
-    commentItem: '[class*="CommentItemContainer"]'
+    commentItem: '[class*="CommentItemContainer"]',
+    // Gamification (Leaderboard-Seite): zeigt Level und Punkte zum naechsten
+    // Level fuer den eingeloggten User in der jeweiligen Community.
+    gamificationProgress: '[class*="GamificationProgress"]',
+    pointsToGoWrapper: '[class*="PointsToGoWrapper"]',
+    userInfoTitle: '[class*="UserInfoTitle"]'
   };
 
   function isPostDetailPage() {
     return !!document.querySelector(SKOOL_SEL.detailHeader);
+  }
+
+  /**
+   * Extrahiert die eigenen Gamification-Daten (Level + Punkte zum naechsten
+   * Level) aus der GamificationProgress-Card. Sichtbar nur auf Leaderboard-
+   * Seiten (`/<community>/-/leaderboards`). Returns null falls die Card nicht
+   * im DOM ist oder die Werte nicht parsbar sind.
+   *
+   * Beispiel-Output: { level: 5, toNext: 332 }
+   */
+  function extractMyPoints() {
+    const card = document.querySelector(SKOOL_SEL.gamificationProgress);
+    if (!card) return null;
+
+    let level = null;
+    const titleEl = card.querySelector(SKOOL_SEL.userInfoTitle);
+    if (titleEl) {
+      const m = (titleEl.textContent || "").match(/Level\s+(\d+)/i);
+      if (m) level = parseInt(m[1], 10);
+    }
+
+    let toNext = null;
+    const ptsEl = card.querySelector(SKOOL_SEL.pointsToGoWrapper);
+    if (ptsEl) {
+      // Erste Zahl im Wrapper ist die Punkt-Zahl (z. B. "332 points to level up").
+      const m = (ptsEl.textContent || "").match(/(\d[\d.,]*)/);
+      if (m) toNext = parseInt(m[1].replace(/[^\d]/g, ""), 10);
+    }
+
+    if (level === null && toNext === null) return null;
+    return { level, toNext };
+  }
+
+  function maybeRecordMyPoints() {
+    const slug = currentCommunitySlug();
+    if (!slug || !state.communities[slug]) return;
+    const pts = extractMyPoints();
+    if (!pts) return;
+    const prev = state.communities[slug].points || {};
+    // Nur speichern wenn sich was geaendert hat oder wir noch nichts haben.
+    if (prev.level !== pts.level || prev.toNext !== pts.toNext) {
+      state.communities[slug].points = {
+        level: pts.level,
+        toNext: pts.toNext,
+        capturedAt: Date.now()
+      };
+      saveCommunities();
+      renderRoundRobin();
+    } else if (!prev.capturedAt) {
+      // Identische Werte, aber Zeitstempel fehlt — einmalig setzen.
+      state.communities[slug].points = { ...prev, capturedAt: Date.now() };
+      saveCommunities();
+    }
   }
 
   function extractPostData(el) {
@@ -653,6 +716,7 @@
     }
     maybeScanNav();
     maybeRecordVisit();
+    maybeRecordMyPoints();
 
     if (!state.keywords.length) {
       renderSidebar();
@@ -867,6 +931,20 @@
     const today = entries.filter(c => c.lastVisit && c.lastVisit >= todayThreshold && passesMemberFilter(c));
     const currentSlug = currentCommunitySlug();
 
+    const STALE_POINTS_MS = 24 * 60 * 60 * 1000;
+    const renderPointsBadge = (c) => {
+      const p = c.points;
+      if (!p) return "";
+      const stale = p.capturedAt && (Date.now() - p.capturedAt) > STALE_POINTS_MS;
+      const parts = [];
+      if (p.level != null) parts.push(`L${p.level}`);
+      if (p.toNext != null) parts.push(`${p.toNext}P`);
+      if (!parts.length) return "";
+      const label = parts.join(" · ");
+      const tooltip = `Stand: ${formatRelativeTime(p.capturedAt)}${p.toNext != null ? ` — noch ${p.toNext} Punkte zum naechsten Level` : ""}`;
+      return `<span class="sh-rr-points ${stale ? 'sh-rr-points-stale' : ''}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
+    };
+
     const renderRow = (c, isToday) => {
       const count = state.sessionCounts[c.slug] || 0;
       const isCurrent = c.slug === currentSlug;
@@ -876,6 +954,7 @@
            data-slug="${escapeHtml(c.slug)}">
           <span class="sh-rr-dot"></span>
           <span class="sh-rr-name" title="${escapeHtml(c.slug)}">${escapeHtml(c.name || c.slug)}</span>
+          ${renderPointsBadge(c)}
           ${count > 0 ? `<span class="sh-rr-count" title="Treffer in dieser Session">${count}</span>` : ""}
           <span class="sh-rr-time">${escapeHtml(formatRelativeTime(c.lastVisit))}</span>
         </a>
