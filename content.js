@@ -1,20 +1,33 @@
 /**
- * Skool Helper – Content Script (v0.2.8)
+ * Skool Helper – Content Script (v0.4.10)
  *
- * v0.1: Scan nach Posts, Keyword-Highlighting, Sidebar mit Priority-Liste,
- *       Kommentar-Vorlagen, Desktop-Notifications.
- * v0.2: Community Round-Robin – Auto-Tracking von Community-Besuchen,
- *       Auto-Erkennung der Communities aus der Skool-Navigation,
- *       Session-Counter für Keyword-Treffer pro Community.
- * v0.2.1: Heading-basierte Post-Erkennung (ganzer Post umrahmt),
- *         sauberere Titel- und Snippet-Extraktion.
- * v0.2.2: Community-Rundlauf-Label, scrollbare Gruppen.
- * v0.2.3: Sprach-Auto-Erkennung + Sprachfilter (alle/de/en/de+unbekannt).
- * v0.2.4: Reparatur der Options-Page (Speichern-Button), Auto-Save Filter.
- * v0.2.5: Absicherung gegen 'Extension context invalidated' nach Reload.
- * v0.2.6: Mitgliedschafts-Erkennung aus Nav/Drawer + Filter 'Nur Mitgliedschaften'.
- * v0.2.7: Robustere Post-Erkennung fuer Feed-Layouts ohne Like-Text (aria-Labels, Post-Links).
- * v0.2.8: Post-Erkennung auch ohne h-Tag (Zeit-Pattern + Avatar), Community-Namen saeubern.
+ * v0.4.10: Code-Hygiene (Pfad D) — Defaults zentralisiert in defaults.js
+ *          (vorher 3x dupliziert in background.js, content.js, options.js
+ *          mit abweichendem Umfang in background.js). Single Source of Truth
+ *          via globalThis.SKOOL_HELPER_DEFAULTS.
+ * v0.4.9: Detection-Sprint (Pfad C) — extractPostData nutzt jetzt die echten
+ *         Skool-styled-component-Klassen (TitleText, UserNameText) statt
+ *         Heading/erstes-Link-Heuristik. Damit greift die Author-Erkennung
+ *         nicht mehr versehentlich den Community-Link. ID nutzt Skools
+ *         `?c=<post-id>`-Parameter fuer eindeutige Post-Identifikation.
+ *         Zentrale SKOOL_SEL-Konstante fuer alle Skool-Selektoren.
+ * v0.4.8: UX-Sprint (Pfad B) — Section-Counter in Headern, persistente Suchfelder
+ *         in Bookmarks und Cross-Community-Feed, Tastatur-Shortcut Alt+Shift+S
+ *         fuer Sidebar-Toggle (chrome.commands), JSON-Backup-Export/-Import
+ *         in Options.
+ * v0.4.7: Performance-Sprint — Nav-Scan/Visit-Record gedrosselt, Storage-Writes
+ *         coalesced, SPA-URL-Hook statt Polling, postHistory mit Hard-Cap,
+ *         Footer-Timer auf 1s, Comment-Container von Post-Detection ausgeschlossen.
+ * v0.4.6: Keyword-Chips Trennung, Sidebar-Fingerprint im postHistory-Pruning.
+ * v0.4.5: Dreifache Absicherung gegen Selbst-Scan der Sidebar.
+ * v0.4.4: Post-Detection ignoriert die eigene Sidebar.
+ * v0.4.3: Community-Name auf Detail-Seiten nicht durch Post-Titel ueberschrieben.
+ * v0.4.2: "Noch offen heute (0)" unterscheidet "alle besucht" vs. "gefiltert".
+ * v0.4.1: "Heute" beginnt ab Mitternacht (Kalendertag).
+ * v0.4.0: Post-History (14 Tage), Cross-Community-Feed (7 Tage), Markdown-Export, Anti-Autoren-Filter.
+ * v0.3.0: Read-Later/Bookmarks, Ausschluss-Keywords, Session-Timer, Engagement-Log.
+ * v0.2.x: Round-Robin, Sprachfilter, Mitgliedschafts-Erkennung, robustere Post-Erkennung.
+ * v0.1.0: Erstes Release.
  */
 
 (() => {
@@ -23,14 +36,16 @@
   if (window.__SKOOL_HELPER_LOADED__) return;
   window.__SKOOL_HELPER_LOADED__ = true;
 
-  const DEFAULT_KEYWORDS = ["youtube", "bilder", "videos", "todo", "prompt"];
-  const DEFAULT_COMMENT_TEMPLATES = [
-    "Super Beitrag! Danke fürs Teilen. 🙌",
-    "Richtig spannend – da hol ich mir Inspiration.",
-    "Starker Input! Probier ich gleich mal aus.",
-    "Nice, das passt gerade perfekt zu dem, woran ich arbeite.",
-    "Mega, danke für den Prompt/Workflow – notiere ich mir."
-  ];
+  // Defaults aus defaults.js (Single Source of Truth, geteilt mit Service
+  // Worker und Options Page). defaults.js wird vor content.js geladen
+  // (siehe manifest.json content_scripts.js).
+  const DEFAULTS = globalThis.SKOOL_HELPER_DEFAULTS;
+  if (!DEFAULTS) {
+    console.error("[Skool Helper] defaults.js wurde nicht geladen — Extension neu installieren oder manifest.json pruefen.");
+    return;
+  }
+  const DEFAULT_KEYWORDS = DEFAULTS.keywords;
+  const DEFAULT_COMMENT_TEMPLATES = DEFAULTS.commentTemplates;
   const VISIT_WINDOW_MS = 24 * 60 * 60 * 1000;
   const RESERVED_SLUGS = new Set([
     "", "about", "login", "signup", "auth", "settings", "password", "notifications",
@@ -76,18 +91,7 @@
 
   async function loadConfig() {
     try {
-      const sync = await chrome.storage.sync.get({
-        keywords: DEFAULT_KEYWORDS,
-        commentTemplates: DEFAULT_COMMENT_TEMPLATES,
-        sidebarVisible: true,
-        notifyOnMatch: true,
-        languageFilter: "all",
-        membersOnly: false,
-        excludedKeywords: [],
-        excludedAuthors: [],
-        showTimer: false,
-        showEngagement: false
-      });
+      const sync = await chrome.storage.sync.get(DEFAULTS);
       state.keywords = (sync.keywords || []).map(k => k.toLowerCase().trim()).filter(Boolean);
       state.commentTemplates = Array.isArray(sync.commentTemplates) && sync.commentTemplates.length
         ? sync.commentTemplates
@@ -113,17 +117,28 @@
     }
   }
 
-  async function saveCommunities() {
+  // Coalesced Storage-Writes: max. 1 Schreibvorgang pro Schluessel pro 2s.
+  // Verhindert Storage-Spam bei jedem MutationObserver-Tick.
+  const COALESCE_DELAY_MS = 2000;
+  let saveCommunitiesTimer = null;
+  let savePostHistoryTimer = null;
+
+  function saveCommunities() {
     if (!isExtensionAlive()) { markExtensionDead(); return; }
-    try {
-      await chrome.storage.local.set({ communities: state.communities });
-    } catch (e) {
-      if (e && String(e).includes("Extension context invalidated")) {
-        markExtensionDead();
-      } else {
-        console.warn("[Skool Helper] Konnte Communities nicht speichern:", e);
+    if (saveCommunitiesTimer) return; // schon geplant, neuer Stand wird beim Flush mitgenommen
+    saveCommunitiesTimer = setTimeout(async () => {
+      saveCommunitiesTimer = null;
+      if (!isExtensionAlive()) return;
+      try {
+        await chrome.storage.local.set({ communities: state.communities });
+      } catch (e) {
+        if (e && String(e).includes("Extension context invalidated")) {
+          markExtensionDead();
+        } else {
+          console.warn("[Skool Helper] Konnte Communities nicht speichern:", e);
+        }
       }
-    }
+    }, COALESCE_DELAY_MS);
   }
 
 
@@ -155,14 +170,23 @@
     renderSidebar();
   }
 
-  async function savePostHistory() {
+  function savePostHistory() {
     if (!isExtensionAlive()) { markExtensionDead(); return; }
-    try {
-      await chrome.storage.local.set({ postHistory: state.postHistory });
-    } catch (e) {
-      if (e && String(e).includes("Extension context invalidated")) markExtensionDead();
-    }
+    if (savePostHistoryTimer) return;
+    savePostHistoryTimer = setTimeout(async () => {
+      savePostHistoryTimer = null;
+      if (!isExtensionAlive()) return;
+      try {
+        await chrome.storage.local.set({ postHistory: state.postHistory });
+      } catch (e) {
+        if (e && String(e).includes("Extension context invalidated")) markExtensionDead();
+      }
+    }, COALESCE_DELAY_MS);
   }
+
+  // Hard-Cap: postHistory bleibt bei sehr aktiver Nutzung handhabbar.
+  // chrome.storage.local hat 5 MB Limit ohne Permission, dazu kommt die Render-Last.
+  const MAX_POST_HISTORY = 2000;
 
   function prunePostHistory() {
     const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
@@ -172,7 +196,7 @@
       const title = (p.title || "").toLowerCase();
       const snippet = (p.snippet || "").toLowerCase();
       // Sidebar-Fingerprints: unsere eigenen Labels/Texte
-      const looksLikeSidebar = 
+      const looksLikeSidebar =
         title.includes("skool helper") ||
         snippet.includes("community-rundlauf") ||
         snippet.includes("priority-posts") ||
@@ -183,6 +207,15 @@
         delete state.postHistory[id];
         changed = true;
       }
+    }
+    // Hard-Cap nach Zeit-Pruning: aelteste lastSeen rauswerfen.
+    const remaining = Object.entries(state.postHistory);
+    if (remaining.length > MAX_POST_HISTORY) {
+      remaining.sort((a, b) => (b[1].lastSeen || 0) - (a[1].lastSeen || 0));
+      for (let i = MAX_POST_HISTORY; i < remaining.length; i++) {
+        delete state.postHistory[remaining[i][0]];
+      }
+      changed = true;
     }
     if (changed) savePostHistory();
   }
@@ -461,7 +494,15 @@
         }
       });
 
-    const arr = Array.from(candidates).filter(el => !el.closest("#skool-helper-sidebar"));
+    const arr = Array.from(candidates).filter(el => {
+      if (el.closest("#skool-helper-sidebar")) return false;
+      // Skool-spezifisch: Kommentare auf Post-Detail-Seiten haben Klassen wie
+      // "styled__CommentItemContainer-..." und sollen NICHT als eigenstaendige
+      // Posts indiziert werden. Der Hauptpost selbst ist nicht in einem
+      // CommentItemContainer.
+      if (el.closest(SKOOL_SEL.commentItem)) return false;
+      return true;
+    });
     const filtered = arr.filter(a => !arr.some(b => b !== a && b.contains(a)));
     if (window.__SKOOL_HELPER_DEBUG) {
       console.info("[Skool Helper] Gefundene Post-Container:", filtered.length, filtered);
@@ -469,50 +510,96 @@
     return filtered;
   }
 
+  // Skool-spezifische Selektoren (styled-components, Klassen-Substrings stabil
+  // ueber lange Zeit — Hash-Suffix wechselt pro Build).
+  const SKOOL_SEL = {
+    title: '[class*="TitleText"]',
+    userName: '[class*="UserNameText"]',
+    postedDate: '[class*="PostedDate"]',
+    dateLabel: '[class*="DateAndLabelWrapper"]',
+    detailHeader: '[class*="PostDetailHeader"]',
+    commentItem: '[class*="CommentItemContainer"]'
+  };
+
+  function isPostDetailPage() {
+    return !!document.querySelector(SKOOL_SEL.detailHeader);
+  }
+
   function extractPostData(el) {
     const rawAll = (el.textContent || "").replace(/\s+/g, " ").trim();
 
+    // Title: zuerst Skool-spezifisch, dann Heading-Fallback, dann Text-Slice.
     let title = "";
-    const firstHeading = el.querySelector("h1, h2, h3");
-    if (firstHeading) title = firstHeading.textContent.trim();
+    const titleNode = el.querySelector(SKOOL_SEL.title);
+    if (titleNode) title = titleNode.textContent.trim();
+    if (!title) {
+      const firstHeading = el.querySelector("h1, h2, h3");
+      if (firstHeading) title = firstHeading.textContent.trim();
+    }
     if (!title) {
       const strong = el.querySelector("strong, b");
       if (strong) title = strong.textContent.trim();
     }
     if (!title) title = rawAll.slice(0, 80);
 
-    let snippet = rawAll;
-    if (title && rawAll.includes(title)) {
-      snippet = rawAll.slice(rawAll.indexOf(title) + title.length).trim();
-    }
-    snippet = snippet.replace(/\s*(Liked|Like|\d+\s*(comments?|Kommentare?))[\s\S]*$/i, "").trim();
-    snippet = snippet.slice(0, 240);
-
+    // Author: Skool-Klasse zuerst — vermeidet, dass der Community-Link
+    // (z. B. "News & Talk") faelschlich als Autor erkannt wird.
     let author = "";
-    const headingBlock = firstHeading ? firstHeading.closest("header, div") : null;
-    const authorScope = headingBlock || el;
-    const avatar = authorScope.querySelector('img[alt], img[src*="avatar"], img[src*="profile"]');
-    if (avatar) {
-      const nearbyLink = avatar.closest("a") || avatar.parentElement?.querySelector("a, span, div");
-      if (nearbyLink) author = nearbyLink.textContent.trim().split("\n")[0].slice(0, 60);
+    const userNameNode = el.querySelector(SKOOL_SEL.userName);
+    if (userNameNode) {
+      author = userNameNode.textContent.replace(/\s+/g, " ").trim().slice(0, 60);
+    }
+    if (!author) {
+      const firstHeading = el.querySelector("h1, h2, h3");
+      const headingBlock = firstHeading ? firstHeading.closest("header, div") : null;
+      const authorScope = headingBlock || el;
+      const avatar = authorScope.querySelector('img[alt], img[src*="avatar"], img[src*="profile"]');
+      if (avatar) {
+        const nearbyLink = avatar.closest("a") || avatar.parentElement?.querySelector("a, span, div");
+        if (nearbyLink) author = nearbyLink.textContent.trim().split("\n")[0].slice(0, 60);
+      }
     }
     if (!author) {
       const firstLink = el.querySelector("a");
       if (firstLink) author = firstLink.textContent.trim().split("\n")[0].slice(0, 60);
     }
 
+    // Snippet: rawAll ohne Author-Praefix (sonst steht im Snippet "Felix Hoberg
+    // 2d News & Talk Verrueckte KI-Geschaeftsideen ..."), und ohne Like-/
+    // Comment-Counts am Ende.
+    let snippet = rawAll;
+    if (author && snippet.startsWith(author)) {
+      snippet = snippet.slice(author.length).trim();
+    }
+    if (title && snippet.includes(title)) {
+      snippet = snippet.slice(snippet.indexOf(title) + title.length).trim();
+    }
+    snippet = snippet.replace(/\s*(Liked|Like|\d+\s*(comments?|Kommentare?))[\s\S]*$/i, "").trim();
+    snippet = snippet.slice(0, 240);
+
+    // URL: Post-Link oder aktuelle Detail-URL.
     let url = "";
-    const postLink = el.querySelector('a[href*="/post/"], a[href*="/-/"]');
+    const postLink = el.querySelector('a[href*="/post/"], a[href*="/-/"], a[href*="?c="]');
     if (postLink) url = postLink.href;
-    if (!url) {
-      if (location.pathname.includes("/post") || location.pathname.includes("/-/")) {
-        url = location.href;
-      }
+    if (!url && (location.pathname.includes("/post") || location.pathname.includes("/-/") || location.search.includes("c="))) {
+      url = location.href;
     }
 
-    const id = url
-      ? url.split("?")[0]
-      : `local:${hashString((title + "|" + author).slice(0, 200))}`;
+    // ID: Skool nutzt fuer Post-Detail-URLs `<community>?c=<post-id>`. Wir
+    // normalisieren auf path + `?c=<id>` (alle anderen Query-Parameter raus),
+    // damit derselbe Post nie zwei IDs bekommt.
+    let id;
+    if (url) {
+      try {
+        const u = new URL(url, location.origin);
+        const c = u.searchParams.get("c");
+        id = c ? `${u.origin}${u.pathname}?c=${c}` : url.split("?")[0];
+      } catch (e) {
+        id = url.split("?")[0];
+      }
+    } else {
+      id = `local:${hashString((title + "|" + author).slice(0, 200))}`;
+    }
 
     const searchText = rawAll.toLowerCase();
     const matchedKeywords = state.keywords.filter(k => searchText.includes(k));
@@ -529,6 +616,32 @@
     return Math.abs(h).toString(36);
   }
 
+  // Drosselung: Nav-Scan und Visit-Record sind teuer und mussten frueher pro
+  // MutationObserver-Tick laufen. Jetzt: Nav-Scan max. alle 10s ODER bei
+  // URL-Slug-Wechsel; Visit-Record nur bei Slug-Wechsel.
+  const NAV_SCAN_INTERVAL_MS = 10_000;
+  let lastNavScanAt = 0;
+  let lastNavScanSlug = null;
+  let lastVisitSlug = null;
+
+  function maybeScanNav() {
+    const slug = currentCommunitySlug();
+    const now = Date.now();
+    if (slug !== lastNavScanSlug || now - lastNavScanAt > NAV_SCAN_INTERVAL_MS) {
+      scanSkoolNavForCommunities();
+      lastNavScanSlug = slug;
+      lastNavScanAt = now;
+    }
+  }
+
+  function maybeRecordVisit() {
+    const slug = currentCommunitySlug();
+    if (slug && slug !== lastVisitSlug) {
+      recordCurrentVisit();
+      lastVisitSlug = slug;
+    }
+  }
+
   function scan() {
     if (!isExtensionAlive()) { markExtensionDead(); return; }
     // Alte "Posts" entfernen, die in Wahrheit unsere eigene Sidebar sind (aus altem State)
@@ -538,8 +651,8 @@
         state.matchedPostIds.delete(id);
       }
     }
-    scanSkoolNavForCommunities();
-    recordCurrentVisit();
+    maybeScanNav();
+    maybeRecordVisit();
 
     if (!state.keywords.length) {
       renderSidebar();
@@ -552,6 +665,7 @@
 
     for (const el of containers) {
       if (el && typeof el.closest === "function" && el.closest("#skool-helper-sidebar")) continue;
+      if (el && typeof el.closest === "function" && el.closest(SKOOL_SEL.commentItem)) continue;
       const data = extractPostData(el);
       if (!data) continue;
 
@@ -650,21 +764,21 @@
       </div>
       <div class="sh-section sh-priority">
         <div class="sh-section-header" data-target="sh-list">
-          <span>⭐ Priority-Posts</span>
+          <span>⭐ Priority-Posts <span class="sh-section-count" id="sh-priority-count"></span></span>
           <span class="sh-caret">▾</span>
         </div>
         <div class="sh-section-body" id="sh-list"><div class="sh-empty">Noch keine Treffer. Scrolle durch den Feed.</div></div>
       </div>
       <div class="sh-section sh-cross">
         <div class="sh-section-header" data-target="sh-cross-body">
-          <span>🌐 Alle Treffer (7 Tage)</span>
+          <span>🌐 Alle Treffer (7 Tage) <span class="sh-section-count" id="sh-cross-count"></span></span>
           <span class="sh-caret">▸</span>
         </div>
         <div class="sh-section-body" id="sh-cross-body" style="display:none"></div>
       </div>
       <div class="sh-section sh-bookmarks">
         <div class="sh-section-header" data-target="sh-bookmarks-body">
-          <span>📌 Gemerkt</span>
+          <span>📌 Gemerkt <span class="sh-section-count" id="sh-bookmarks-count"></span></span>
           <span class="sh-caret">▾</span>
         </div>
         <div class="sh-section-body" id="sh-bookmarks-body"></div>
@@ -801,6 +915,9 @@
       .filter(p => p.matchedKeywords.length > 0)
       .sort((a, b) => b.matchedKeywords.length - a.matchedKeywords.length);
 
+    const countEl = sidebarEl.querySelector("#sh-priority-count");
+    if (countEl) countEl.textContent = posts.length ? `(${posts.length})` : "";
+
     if (!posts.length) {
       list.innerHTML = '<div class="sh-empty">Noch keine Treffer auf dieser Seite. Scrolle durch den Feed, damit mehr Posts geladen werden.</div>';
       return;
@@ -890,15 +1007,43 @@
     const body = sidebarEl.querySelector("#sh-cross-body");
     if (!body) return;
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const items = Object.values(state.postHistory || {})
+    const allItems = Object.values(state.postHistory || {})
       .filter(p => (p.lastSeen || 0) >= cutoff)
-      .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))
-      .slice(0, 50);
+      .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+
+    // Lazy-init: persistente Suchleiste + Listen-Container.
+    // Nur einmal initialisieren, damit Fokus/Cursor-Position erhalten bleibt.
+    let search = body.querySelector(".sh-search");
+    let listEl = body.querySelector(".sh-cross-list");
+    if (!search) {
+      body.innerHTML = '<input type="search" class="sh-search" placeholder="Filtern (Titel/Autor/Community/Keyword)…">' +
+                      '<div class="sh-cross-list"></div>';
+      search = body.querySelector(".sh-search");
+      listEl = body.querySelector(".sh-cross-list");
+      search.addEventListener("input", () => renderCrossCommunity());
+    }
+
+    const filter = (search.value || "").toLowerCase().trim();
+    const filtered = filter
+      ? allItems.filter(p => (
+          (p.title || "").toLowerCase().includes(filter) ||
+          (p.author || "").toLowerCase().includes(filter) ||
+          (p.community || "").toLowerCase().includes(filter) ||
+          (p.matchedKeywords || []).some(k => k.includes(filter))
+        ))
+      : allItems;
+    const items = filtered.slice(0, 50);
+
+    const countEl = sidebarEl.querySelector("#sh-cross-count");
+    if (countEl) countEl.textContent = allItems.length ? `(${allItems.length})` : "";
+
     if (!items.length) {
-      body.innerHTML = '<div class="sh-empty sh-empty-sm">Noch keine gespeicherten Treffer. Scrolle durch deine Communities, damit sie erfasst werden.</div>';
+      listEl.innerHTML = '<div class="sh-empty sh-empty-sm">' +
+        (filter ? "Keine Treffer fuer deinen Filter." : "Noch keine gespeicherten Treffer. Scrolle durch deine Communities, damit sie erfasst werden.") +
+        '</div>';
       return;
     }
-    body.innerHTML = items.map(p => `
+    listEl.innerHTML = items.map(p => `
       <div class="sh-cross-item">
         <div class="sh-cross-title">${escapeHtml((p.title || "").slice(0, 80))}</div>
         <div class="sh-cross-meta">${escapeHtml(p.community || "")} · ${escapeHtml(p.author || "")} · ${escapeHtml(formatRelativeTime(p.lastSeen))}</div>
@@ -912,13 +1057,44 @@
     if (!sidebarEl) return;
     const body = sidebarEl.querySelector("#sh-bookmarks-body");
     if (!body) return;
-    const items = Object.values(state.bookmarks || {})
+
+    const allItems = Object.values(state.bookmarks || {})
       .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-    if (!items.length) {
+
+    // Lazy-init: persistente Suchleiste + Listen-Container.
+    let search = body.querySelector(".sh-search");
+    let listEl = body.querySelector(".sh-bm-list");
+    if (allItems.length > 0 && !search) {
+      body.innerHTML = '<input type="search" class="sh-search" placeholder="Filtern (Titel/Autor/Community)…">' +
+                      '<div class="sh-bm-list"></div>';
+      search = body.querySelector(".sh-search");
+      listEl = body.querySelector(".sh-bm-list");
+      search.addEventListener("input", () => renderBookmarks());
+    }
+
+    const countEl = sidebarEl.querySelector("#sh-bookmarks-count");
+    if (countEl) countEl.textContent = allItems.length ? `(${allItems.length})` : "";
+
+    if (!allItems.length) {
       body.innerHTML = '<div class="sh-empty sh-empty-sm">Noch nichts gemerkt. Klicke bei einem Priority-Post auf "☆ Merken".</div>';
       return;
     }
-    body.innerHTML = items.map(b => `
+
+    const filter = (search && search.value || "").toLowerCase().trim();
+    const items = filter
+      ? allItems.filter(b => (
+          (b.title || "").toLowerCase().includes(filter) ||
+          (b.author || "").toLowerCase().includes(filter) ||
+          (b.community || "").toLowerCase().includes(filter)
+        ))
+      : allItems;
+
+    if (!items.length) {
+      listEl.innerHTML = '<div class="sh-empty sh-empty-sm">Keine Treffer fuer deinen Filter.</div>';
+      return;
+    }
+
+    listEl.innerHTML = items.map(b => `
       <div class="sh-bm-item" data-id="${escapeHtml(b.id)}">
         <div class="sh-bm-title">${escapeHtml((b.title || "").slice(0, 80))}</div>
         <div class="sh-bm-meta">${escapeHtml(b.community || "")} ${escapeHtml(b.author || "")}</div>
@@ -928,7 +1104,7 @@
         </div>
       </div>
     `).join("");
-    body.querySelectorAll(".sh-bm-del").forEach(btn => {
+    listEl.querySelectorAll(".sh-bm-del").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
         if (id && state.bookmarks[id]) {
@@ -986,6 +1162,32 @@
 
   const mo = new MutationObserver(() => scheduleScan());
 
+  // SPA-URL-Hook: Skool ist Single-Page. Statt 1.5s-Polling patchen wir
+  // history.pushState/replaceState und lauschen auf popstate. Reagiert sofort.
+  function installSpaUrlHook() {
+    const fire = () => {
+      try { window.dispatchEvent(new Event("skool-helper-url")); } catch (e) {}
+    };
+    try {
+      const origPush = history.pushState;
+      const origReplace = history.replaceState;
+      history.pushState = function () {
+        const r = origPush.apply(this, arguments);
+        fire();
+        return r;
+      };
+      history.replaceState = function () {
+        const r = origReplace.apply(this, arguments);
+        fire();
+        return r;
+      };
+    } catch (e) {
+      console.warn("[Skool Helper] history-Hook fehlgeschlagen:", e);
+    }
+    window.addEventListener("popstate", fire);
+    window.addEventListener("hashchange", fire);
+  }
+
   async function init() {
     await loadConfig();
     ensureSidebar();
@@ -993,21 +1195,32 @@
     scan();
     mo.observe(document.body, { childList: true, subtree: true });
 
+    // SPA-URL-Wechsel: sofortiger Re-Scan statt 1.5s-Polling.
+    installSpaUrlHook();
     let lastHref = location.href;
-    setInterval(() => {
-      if (location.href !== lastHref) {
-        lastHref = location.href;
-        state.sessionCounts = {};
-        rescan();
-      }
-    }, 1500);
+    window.addEventListener("skool-helper-url", () => {
+      if (location.href === lastHref) return;
+      lastHref = location.href;
+      state.sessionCounts = {};
+      rescan();
+    });
 
-    // Timer-Update alle 30s, damit die Sekunden-Anzeige mitlaeuft
-    setInterval(() => {
-      if (state.showTimer || state.showEngagement) {
-        renderFooterStats();
-      }
-    }, 30000);
+    // Footer-Refresh: 1s wenn Sekunden-Timer aktiv, sonst 30s reichen
+    // (Engagement-Log braucht keine sekundengenaue Aktualisierung).
+    // Re-scheduled sich selbst mit aktueller Praeferenz, falls der User
+    // den Timer in den Optionen toggelt.
+    function scheduleFooterTick() {
+      if (__extensionDead) return;
+      const interval = state.showTimer ? 1000 : 30000;
+      setTimeout(() => {
+        if (__extensionDead) return;
+        if (state.showTimer || state.showEngagement) {
+          try { renderFooterStats(); } catch (e) {}
+        }
+        scheduleFooterTick();
+      }, interval);
+    }
+    scheduleFooterTick();
   }
 
   if (document.readyState === "loading") {

@@ -1,23 +1,8 @@
 "use strict";
 
-const DEFAULTS_SYNC = {
-  keywords: ["youtube", "bilder", "videos", "todo", "prompt"],
-  commentTemplates: [
-    "Super Beitrag! Danke fuers Teilen. 🙌",
-    "Richtig spannend – da hol ich mir Inspiration.",
-    "Starker Input! Probier ich gleich mal aus.",
-    "Nice, das passt gerade perfekt zu dem, woran ich arbeite.",
-    "Mega, danke fuer den Prompt/Workflow – notiere ich mir."
-  ],
-  sidebarVisible: true,
-  notifyOnMatch: true,
-  languageFilter: "all",
-  membersOnly: false,
-  excludedKeywords: [],
-  excludedAuthors: [],
-  showTimer: false,
-  showEngagement: false
-};
+// Defaults aus defaults.js (vor dieser Datei via <script src> geladen).
+// Single Source of Truth, geteilt mit Service Worker und Content Script.
+const DEFAULTS_SYNC = globalThis.SKOOL_HELPER_DEFAULTS;
 
 const $ = id => document.getElementById(id);
 
@@ -213,6 +198,59 @@ async function exportSummary(hours, title) {
   showStatus(`Export: ${posts.length} Posts`);
 }
 
+async function exportBackup() {
+  const sync = await chrome.storage.sync.get(null);
+  const local = await chrome.storage.local.get({ communities: {}, bookmarks: {}, postHistory: {} });
+  const payload = {
+    schema: "skool-helper-backup-v1",
+    exportedAt: new Date().toISOString(),
+    sync,
+    local
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `skool-helper-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  showStatus("Backup exportiert");
+}
+
+async function importBackupFromFile(file) {
+  if (!file) return;
+  let data;
+  try {
+    const text = await file.text();
+    data = JSON.parse(text);
+  } catch (e) {
+    showStatus("Ungueltige JSON-Datei");
+    return;
+  }
+  if (!data || data.schema !== "skool-helper-backup-v1" || !data.sync || !data.local) {
+    showStatus("Backup-Format passt nicht");
+    return;
+  }
+  if (!confirm("Bestehende Settings, Communities, Bookmarks und Historie wirklich ueberschreiben?")) {
+    return;
+  }
+  try {
+    await chrome.storage.sync.clear();
+    await chrome.storage.sync.set(data.sync);
+    await chrome.storage.local.set({
+      communities: data.local.communities || {},
+      bookmarks: data.local.bookmarks || {},
+      postHistory: data.local.postHistory || {}
+    });
+    await load();
+    showStatus("Backup eingelesen");
+  } catch (e) {
+    showStatus("Import fehlgeschlagen: " + (e && e.message || e));
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   load();
   $("save").addEventListener("click", save);
@@ -220,6 +258,18 @@ document.addEventListener("DOMContentLoaded", () => {
   $("reset-communities").addEventListener("click", resetCommunities);
   if ($("export-summary")) $("export-summary").addEventListener("click", () => exportSummary(24, "Tagesueberblick"));
   if ($("export-weekly")) $("export-weekly").addEventListener("click", () => exportSummary(24 * 7, "Wochenueberblick"));
+
+  if ($("export-backup")) $("export-backup").addEventListener("click", exportBackup);
+  if ($("import-backup")) {
+    $("import-backup").addEventListener("click", () => $("import-backup-file") && $("import-backup-file").click());
+  }
+  if ($("import-backup-file")) {
+    $("import-backup-file").addEventListener("change", (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      importBackupFromFile(file);
+      ev.target.value = "";
+    });
+  }
 
   const membersOnlyChk = $("membersOnly");
   if (membersOnlyChk) {
