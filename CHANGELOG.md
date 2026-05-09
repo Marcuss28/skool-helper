@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.2 (2026-05-09)
+- Detection: `currentCommunityName()` liest jetzt primaer aus `<meta property="og:title">` und `<title>`. Skool setzt beide auf Community-Root-Seiten zuverlaessig auf den korrekten Community-Namen. Vorher haben wir mit Heuristik durch H1/H2 gesucht — was teilweise gut, aber nicht 100% verlaesslich war. Die alte H1-Heuristik bleibt als drittes Safety-Net.
+- Damit ist die Pollution-Quelle geschlossen: neue Communities werden ab jetzt direkt mit dem korrekten Namen erfasst. Bestehende falsche Namen aus pre-v0.6.2 koennen mit dem Bulk-Reset aus v0.6.1 ("Nur Namen leeren" in den Optionen) korrigiert werden.
+
 ## v0.6.1 (2026-05-09)
 - UX: Community-Namen in den Optionen sind jetzt direkt editierbar — Klick aufs Namensfeld, neuer Name eintippen, Enter oder Tab speichert. Escape verwirft.
 - UX: Neuer Button "Nur Namen leeren" — loescht alle Community-Namen, behaelt Besuchshistorie, Sprache, Punkte und Mitgliedschafts-Status. Beim naechsten Skool-Besuch werden Namen aus der Skool-Navigation automatisch neu erfasst. Praktisch, falls Namen aus aelteren Versionen polluted sind (z. B. Post-Titel als Community-Name).

@@ -1,6 +1,12 @@
 /**
- * Skool Helper – Content Script (v0.6.1)
+ * Skool Helper – Content Script (v0.6.2)
  *
+ * v0.6.2: Robuste Community-Name-Erkennung — `currentCommunityName()` liest
+ *         jetzt primaer aus `<meta property="og:title">`, dann aus
+ *         `<title>`. Skool setzt beide auf Community-Root zuverlaessig auf
+ *         den Community-Namen. Die alte H1-Heuristik bleibt als drittes
+ *         Safety-Net. Damit endet die Pollution-Quelle endgueltig: ab jetzt
+ *         werden korrekte Namen direkt beim ersten Visit erfasst.
  * v0.6.1: Manuelle Namens-Korrektur — Community-Namen in den Optionen jetzt
  *         direkt editierbar (Inline-Input). Plus "Namen leeren"-Bulk-Reset:
  *         loescht alle Namen, behaelt Besuchshistorie/Sprache/Punkte/
@@ -316,6 +322,25 @@
   }
 
   function currentCommunityName() {
+    // 1. <meta property="og:title"> — Skool setzt das auf Community-Root
+    //    zuverlaessig auf den Community-Namen. Auf Post-Detail-Seiten waere
+    //    der og:title gleich dem Post-Titel; der Aufrufer (recordCurrentVisit)
+    //    gated bereits auf Community-Root, also unkritisch.
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) {
+      const t = (ogTitle.getAttribute("content") || "").trim();
+      if (t && t.length > 0 && t.length < 100) return t;
+    }
+    // 2. <title>: auf Community-Root ebenfalls nur der Name (kein "X | Y").
+    let docTitle = (document.title || "").trim();
+    if (docTitle) {
+      docTitle = docTitle.split("|")[0].trim();
+      docTitle = docTitle.split(/[·•]/)[0].trim();
+      if (docTitle && docTitle.length < 100) return docTitle;
+    }
+    // 3. Fallback: alte Heuristik mit Headings + nav-aria-current.
+    //    Mit dem Path-Gating in recordCurrentVisit selten noetig, aber bleibt
+    //    als Safety-Net falls ein Skool-Build die meta-Tags mal vergisst.
     const headerCandidates = document.querySelectorAll('h1, h2, [class*="community"] [class*="name"], [class*="community"] h1, nav [aria-current="page"]');
     for (const el of headerCandidates) {
       let t = (el.textContent || "").trim();
@@ -324,9 +349,6 @@
       t = t.replace(/\s+(Community|Classroom|Calendar|Members|Map|Leaderboards|About|Prompts|Chat|Gold|Erfolge).*$/i, "").trim();
       if (t && t.length > 0 && t.length < 60) return t;
     }
-    let title = (document.title || "").split("|")[0].trim();
-    title = title.split(/[·•]/)[0].trim();
-    if (title) return title;
     return null;
   }
 
