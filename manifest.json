@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Skool Helper – Keyword Feed & Highlights",
-  "version": "0.4.6",
+  "version": "0.4.10",
   "description": "Hebt relevante Skool-Beiträge anhand deiner Keywords hervor, zeigt einen Community Round-Robin (welche Communities heute noch offen sind), bietet Kommentar-Ideen. Jede Interaktion bleibt manuell.",
   "permissions": [
     "storage",
@@ -19,6 +19,7 @@
         "https://skool.com/*"
       ],
       "js": [
+        "defaults.js",
         "content.js"
       ],
       "css": [
@@ -37,6 +38,14 @@
   "action": {
     "default_title": "Skool Helper",
     "default_popup": "popup.html"
+  },
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Skool Helper Sidebar ein-/ausblenden"
+    }
   },
   "icons": {
     "16": "icons/icon16.png",

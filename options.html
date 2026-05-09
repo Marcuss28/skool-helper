@@ -109,6 +109,28 @@
       </div>
     </section>
 
+    <section>
+      <h2>Backup &amp; Wiederherstellen</h2>
+      <p class="hint">
+        Exportiert alle Settings, Communities, Bookmarks und die 14-Tage-Historie als JSON.
+        Praktisch beim Browser-Wechsel oder als Sicherheitsnetz vor experimentellen Settings.
+        Beim Import werden bestehende Daten überschrieben.
+      </p>
+      <div class="row-actions">
+        <button id="export-backup">Backup als JSON herunterladen</button>
+        <input type="file" id="import-backup-file" accept="application/json,.json" style="display:none" />
+        <button id="import-backup">Backup einlesen…</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tastatur-Shortcut</h2>
+      <p class="hint">
+        Sidebar ein-/ausblenden mit <code>Alt+Shift+S</code>. In <code>chrome://extensions/shortcuts</code>
+        kannst du den Shortcut anpassen, falls er mit einer anderen Extension kollidiert.
+      </p>
+    </section>
+
     <div class="actions">
       <button id="save" class="primary">Speichern</button>
       <button id="reset">Zurücksetzen</button>
@@ -120,6 +142,7 @@
     <p>Tipp: Nach dem Speichern reicht ein Reload der Skool-Seite, damit die neuen Einstellungen greifen. Sprachfilter und Sprache pro Community werden sofort und ohne Klick übernommen.</p>
   </footer>
 
+  <script src="defaults.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

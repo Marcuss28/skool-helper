@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.4.10 (2026-05-09)
+- Hygiene: Defaults zentralisiert in `defaults.js` — Single Source of Truth fuer Keywords, Templates und alle Settings-Defaults. Vorher 3x dupliziert in background.js, content.js, options.js.
+- Bugfix nebenbei: `chrome.runtime.onInstalled` setzte vorher nur 4 von 10 Default-Keys. Mit der Umstellung auf zentrale Defaults werden jetzt alle gesetzt.
+
+## v0.4.9 (2026-05-09)
+- Detection: `extractPostData` nutzt jetzt Skools echte styled-component-Klassen — Author aus `[class*="UserNameText"]`, Title aus `[class*="TitleText"]`. Vorher fiel die Heuristik gelegentlich auf den Community-Link als Author rein.
+- Detection: ID-Generierung kennt Skools `?c=<post-id>`-Schema und normalisiert auf `path + ?c=<id>`. Verhindert Duplikate in `postHistory`, wenn derselbe Post mit unterschiedlichen Tracking-Parametern verlinkt wird.
+- Detection: Snippet-Cleanup zieht jetzt zusätzlich den Author-Praefix raus, falls er am Anfang des `textContent` klebt.
+- Cleanup: Zentrale `SKOOL_SEL`-Konstante fasst alle Skool-Selektoren an einer Stelle zusammen — leichter wartbar, wenn Skool das Markup ändert.
+
+## v0.4.8 (2026-05-09)
+- UX: Section-Counter in Sidebar-Headern (Priority-Posts, Alle Treffer, Gemerkt) — sieht man sofort wieviel drin ist.
+- UX: Persistente Suchleiste in Bookmarks und Cross-Community-Feed — filtert nach Titel/Autor/Community/Keyword.
+- UX: Tastatur-Shortcut Alt+Shift+S togglet die Sidebar global. In `chrome://extensions/shortcuts` anpassbar.
+- UX: Backup & Wiederherstellen in den Optionen — komplettes JSON-Export aller Settings, Communities, Bookmarks und 14-Tage-Historie. Import mit Confirm.
+
+## v0.4.7 (2026-05-09)
+- Performance: Nav-Scan und Visit-Record nur bei Slug-Wechsel oder alle 10s, nicht pro MutationObserver-Tick.
+- Performance: Storage-Writes (Communities, postHistory) coalesced (2s Debounce) — deutlich weniger Schreibzyklen.
+- Robustheit: postHistory zusaetzlich auf max. 2000 Eintraege gedeckelt (LRU nach lastSeen).
+- Robustheit: SPA-URL-Wechsel via history.pushState/replaceState/popstate-Hook statt 1.5s-Polling — reagiert sofort.
+- Bug: Footer-Timer aktualisiert sich jetzt sekuendlich, wenn showTimer aktiv ist (vorher 30s ungenau).
+- Bug: Posts-vs-Kommentar-Trennung haerter — Container mit Skool-Klasse `*CommentItemContainer*` werden bei der Post-Detection uebersprungen.
+- Cleanup: Versions-Kommentare in content.js und content.css aktualisiert.
+
 ## v0.4.6 (2026-04-23)
 - Fix: Keyword-Chips mit Leerzeichen trennen.
 - Fix: Auto-Purge leftover postHistory-Eintraege mit Sidebar-Fingerprint.
