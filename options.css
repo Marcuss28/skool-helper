@@ -78,7 +78,7 @@ button.danger:hover { background: #991b1b; }
 .communities-list .empty { color: #9ca3af; font-style: italic; padding: 8px 4px; }
 .com-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr auto auto auto;
+  grid-template-columns: 1.2fr auto 1fr auto auto auto;
   gap: 10px;
   align-items: center;
   background: #0f172a;
@@ -88,6 +88,27 @@ button.danger:hover { background: #991b1b; }
   font-size: 13px;
 }
 .com-name { color: #f9fafb; font-weight: 500; }
+.com-name-input {
+  background: transparent;
+  color: #f9fafb;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+.com-name-input:hover {
+  border-color: #4b5563;
+}
+.com-name-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  background: #111827;
+}
+.com-badge-empty { display: none; }
 .com-slug { color: #9ca3af; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 .com-time { color: #9ca3af; font-size: 12px; }
 .com-del {

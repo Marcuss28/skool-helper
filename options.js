@@ -35,7 +35,11 @@ function renderCommunities(communities) {
   }
   box.innerHTML = entries.map(([slug, c]) => `
     <div class="com-row" data-slug="${escapeHtml(slug)}">
-      <div class="com-name">${escapeHtml(c.name || slug)} ${c.isMember === true ? '<span class="com-badge-member">Mitglied</span>' : ''}</div>
+      <input class="com-name-input" data-slug="${escapeHtml(slug)}"
+             value="${escapeHtml(c.name || slug)}"
+             placeholder="${escapeHtml(slug)}"
+             title="Klick zum Bearbeiten — Enter oder Tab zum Speichern" />
+      ${c.isMember === true ? '<span class="com-badge-member">Mitglied</span>' : '<span class="com-badge-member com-badge-empty"></span>'}
       <div class="com-slug">${escapeHtml(slug)}</div>
       <select class="com-lang" data-slug="${escapeHtml(slug)}">
         <option value="" ${!c.language ? "selected" : ""}>Sprache?</option>
@@ -72,6 +76,42 @@ function renderCommunities(communities) {
         delete communities[slug].languageSource;
       }
       await chrome.storage.local.set({ communities });
+    });
+  });
+
+  // Manuelles Editieren des Community-Namens. Speichert bei blur oder Enter.
+  // Leerer String = Reset auf Slug-Fallback (Sidebar zeigt dann den Slug).
+  box.querySelectorAll(".com-name-input").forEach(input => {
+    const save = async () => {
+      const slug = input.getAttribute("data-slug");
+      const newName = (input.value || "").trim();
+      const { communities = {} } = await chrome.storage.local.get({ communities: {} });
+      if (!communities[slug]) return;
+      const oldName = communities[slug].name || "";
+      if (newName === oldName) return;
+      if (newName) {
+        communities[slug].name = newName;
+      } else {
+        delete communities[slug].name;
+      }
+      // manuallyAdded-Flag setzen — verhindert ggf. zukuenftige Heuristik-
+      // Ueberschreibung. Aktuell ueberschreibt Nav-Scan immer noch, das ist
+      // Absicht (Nav ist die zuverlaessigste Quelle). Wer den Namen hier
+      // manuell setzt und Nav widerspricht, hat ein Datenproblem auf Skool-Seite.
+      communities[slug].nameManual = !!newName;
+      await chrome.storage.local.set({ communities });
+      showStatus(newName ? `Name gespeichert: ${newName}` : "Name geleert");
+    };
+    input.addEventListener("blur", save);
+    input.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        input.blur();
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        input.value = input.getAttribute("value") || "";
+        input.blur();
+      }
     });
   });
 }
@@ -140,6 +180,23 @@ async function resetCommunities() {
   await chrome.storage.local.set({ communities: {} });
   renderCommunities({});
   showStatus("Communities zurückgesetzt");
+}
+
+async function clearCommunityNames() {
+  const { communities = {} } = await chrome.storage.local.get({ communities: {} });
+  const slugs = Object.keys(communities);
+  if (!slugs.length) {
+    showStatus("Keine Communities erfasst");
+    return;
+  }
+  if (!confirm(`Namen aller ${slugs.length} Communities leeren? Besuchshistorie, Sprache, Punkte und Mitgliedschafts-Status bleiben erhalten. Beim nächsten Skool-Besuch werden Namen aus der Skool-Navigation neu erfasst.`)) return;
+  for (const slug of slugs) {
+    delete communities[slug].name;
+    delete communities[slug].nameManual;
+  }
+  await chrome.storage.local.set({ communities });
+  renderCommunities(communities);
+  showStatus(`Namen von ${slugs.length} Communities geleert`);
 }
 
 function showStatus(msg) {
@@ -283,6 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("save").addEventListener("click", save);
   $("reset").addEventListener("click", reset);
   $("reset-communities").addEventListener("click", resetCommunities);
+  if ($("clear-names")) $("clear-names").addEventListener("click", clearCommunityNames);
   if ($("export-summary")) $("export-summary").addEventListener("click", () => exportSummary(24, "Tagesüberblick"));
   if ($("export-weekly")) $("export-weekly").addEventListener("click", () => exportSummary(24 * 7, "Wochenüberblick"));
 

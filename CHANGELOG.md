@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.1 (2026-05-09)
+- UX: Community-Namen in den Optionen sind jetzt direkt editierbar — Klick aufs Namensfeld, neuer Name eintippen, Enter oder Tab speichert. Escape verwirft.
+- UX: Neuer Button "Nur Namen leeren" — loescht alle Community-Namen, behaelt Besuchshistorie, Sprache, Punkte und Mitgliedschafts-Status. Beim naechsten Skool-Besuch werden Namen aus der Skool-Navigation automatisch neu erfasst. Praktisch, falls Namen aus aelteren Versionen polluted sind (z. B. Post-Titel als Community-Name).
+
 ## v0.6.0 (2026-05-09)
 - Feature: **Update-Check** gegen GitHub Releases API. Einmal taeglich (per `chrome.alarms`) prueft der Background-Worker, ob ein neueres Release verfuegbar ist. Bei Update wird die Versionsnummer in Sidebar-Footer und Options-Header fett+gelb dargestellt und ist klickbar (oeffnet Release-Seite).
 - Options: Neuer Abschnitt "Update-Check" mit Toggle (default an) und "Jetzt suchen"-Button fuer manuelle Pruefung.

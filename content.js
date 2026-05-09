@@ -1,6 +1,10 @@
 /**
- * Skool Helper – Content Script (v0.6.0)
+ * Skool Helper – Content Script (v0.6.1)
  *
+ * v0.6.1: Manuelle Namens-Korrektur — Community-Namen in den Optionen jetzt
+ *         direkt editierbar (Inline-Input). Plus "Namen leeren"-Bulk-Reset:
+ *         loescht alle Namen, behaelt Besuchshistorie/Sprache/Punkte/
+ *         Mitgliedschaft. Naechster Skool-Visit fuellt Namen aus Nav.
  * v0.6.0: Update-Check (opt-in, default an) — Background-Worker prueft 1x
  *         taeglich gegen die GitHub-Releases-API, ob ein neueres Release
  *         verfuegbar ist. Bei Update wird die Versionsnummer im Footer
