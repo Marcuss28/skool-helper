@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.1 (2026-05-09)
+- Polish: Echte Umlaute in user-sichtbaren Strings — "Öffnen" statt "Oeffnen", "Löschen" statt "Loeschen", "für deinen Filter" statt "fuer", "Tagesüberblick" / "Wochenüberblick", "übernommen", "überschreiben", "zurückgesetzt", "nächsten Level".
+- Fix: Markdown-Export-Dateiname transliteriert Umlaute jetzt zu ue/oe/ae/ss, bevor er sanitized wird. Vorher wurde "Tagesüberblick" zu "tages-berblick", weil das Sanitize-Regex Umlaute mit "-" ersetzt hat.
+
 ## v0.5.0 (2026-05-09)
 - Feature: **Punkte-zum-naechsten-Level** pro Community im Round-Robin. Beim Besuch einer Leaderboard-Seite (`/<community>/-/leaderboards`) liest der Helper Level und Punkte-zum-naechsten aus der GamificationProgress-Card und cached sie pro Community.
 - UX: Dezentes Badge `L5 · 332P` neben dem Community-Namen in der Sidebar. Tooltip zeigt Erfassungszeitpunkt.

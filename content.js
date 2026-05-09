@@ -1,6 +1,10 @@
 /**
- * Skool Helper – Content Script (v0.5.0)
+ * Skool Helper – Content Script (v0.5.1)
  *
+ * v0.5.1: Polish — Transliterationen (Oeffnen, Loeschen, fuer, naechsten, ...)
+ *         in user-sichtbaren Strings durch echte Umlaute ersetzt.
+ *         Markdown-Export-Filename transliteriert Umlaute jetzt sauber zu
+ *         ue/oe/ae/ss statt sie durch Bindestriche zu zerstoeren.
  * v0.5.0: Gamification — liest Level + Punkte zum naechsten Level pro
  *         Community aus der Leaderboard-Card und zeigt sie als dezentes
  *         Badge im Round-Robin (z. B. "L5 · 332P"). Stand wird gecached und
@@ -941,7 +945,7 @@
       if (p.toNext != null) parts.push(`${p.toNext}P`);
       if (!parts.length) return "";
       const label = parts.join(" · ");
-      const tooltip = `Stand: ${formatRelativeTime(p.capturedAt)}${p.toNext != null ? ` — noch ${p.toNext} Punkte zum naechsten Level` : ""}`;
+      const tooltip = `Stand: ${formatRelativeTime(p.capturedAt)}${p.toNext != null ? ` — noch ${p.toNext} Punkte zum nächsten Level` : ""}`;
       return `<span class="sh-rr-points ${stale ? 'sh-rr-points-stale' : ''}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
     };
 
@@ -1118,7 +1122,7 @@
 
     if (!items.length) {
       listEl.innerHTML = '<div class="sh-empty sh-empty-sm">' +
-        (filter ? "Keine Treffer fuer deinen Filter." : "Noch keine gespeicherten Treffer. Scrolle durch deine Communities, damit sie erfasst werden.") +
+        (filter ? "Keine Treffer für deinen Filter." : "Noch keine gespeicherten Treffer. Scrolle durch deine Communities, damit sie erfasst werden.") +
         '</div>';
       return;
     }
@@ -1127,7 +1131,7 @@
         <div class="sh-cross-title">${escapeHtml((p.title || "").slice(0, 80))}</div>
         <div class="sh-cross-meta">${escapeHtml(p.community || "")} · ${escapeHtml(p.author || "")} · ${escapeHtml(formatRelativeTime(p.lastSeen))}</div>
         <div class="sh-cross-kw">${(p.matchedKeywords || []).map(k => `<span class="sh-kw">${escapeHtml(k)}</span>`).join("")}</div>
-        ${p.url ? `<a class="sh-btn" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Oeffnen</a>` : ""}
+        ${p.url ? `<a class="sh-btn" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Öffnen</a>` : ""}
       </div>
     `).join("");
   }
@@ -1169,7 +1173,7 @@
       : allItems;
 
     if (!items.length) {
-      listEl.innerHTML = '<div class="sh-empty sh-empty-sm">Keine Treffer fuer deinen Filter.</div>';
+      listEl.innerHTML = '<div class="sh-empty sh-empty-sm">Keine Treffer für deinen Filter.</div>';
       return;
     }
 
@@ -1178,8 +1182,8 @@
         <div class="sh-bm-title">${escapeHtml((b.title || "").slice(0, 80))}</div>
         <div class="sh-bm-meta">${escapeHtml(b.community || "")} ${escapeHtml(b.author || "")}</div>
         <div class="sh-bm-actions">
-          <a class="sh-btn" href="${escapeHtml(b.url || "#")}" target="_blank" rel="noopener">Oeffnen</a>
-          <button class="sh-btn sh-bm-del" data-id="${escapeHtml(b.id)}">Loeschen</button>
+          <a class="sh-btn" href="${escapeHtml(b.url || "#")}" target="_blank" rel="noopener">Öffnen</a>
+          <button class="sh-btn sh-bm-del" data-id="${escapeHtml(b.id)}">Löschen</button>
         </div>
       </div>
     `).join("");

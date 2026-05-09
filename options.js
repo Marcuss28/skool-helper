@@ -130,14 +130,14 @@ async function save() {
 async function reset() {
   await chrome.storage.sync.set(DEFAULTS_SYNC);
   await load();
-  showStatus("Auf Standard zurueckgesetzt");
+  showStatus("Auf Standard zurückgesetzt");
 }
 
 async function resetCommunities() {
-  if (!confirm("Besuchs-Historie und Community-Liste wirklich komplett loeschen?")) return;
+  if (!confirm("Besuchs-Historie und Community-Liste wirklich komplett löschen?")) return;
   await chrome.storage.local.set({ communities: {} });
   renderCommunities({});
-  showStatus("Communities zurueckgesetzt");
+  showStatus("Communities zurückgesetzt");
 }
 
 function showStatus(msg) {
@@ -191,7 +191,15 @@ async function exportSummary(hours, title) {
   const dateStr = new Date().toISOString().slice(0, 10);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `skool-helper-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${dateStr}.md`;
+  // Filename: Umlaute transliterieren (sonst werden sie vom Sanitize-Regex
+  // zu "-" und "Tagesüberblick" wird zu "tages-berblick").
+  const safeTitle = title.toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-");
+  a.download = `skool-helper-${safeTitle}-${dateStr}.md`;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
@@ -233,7 +241,7 @@ async function importBackupFromFile(file) {
     showStatus("Backup-Format passt nicht");
     return;
   }
-  if (!confirm("Bestehende Settings, Communities, Bookmarks und Historie wirklich ueberschreiben?")) {
+  if (!confirm("Bestehende Settings, Communities, Bookmarks und Historie wirklich überschreiben?")) {
     return;
   }
   try {
@@ -256,8 +264,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("save").addEventListener("click", save);
   $("reset").addEventListener("click", reset);
   $("reset-communities").addEventListener("click", resetCommunities);
-  if ($("export-summary")) $("export-summary").addEventListener("click", () => exportSummary(24, "Tagesueberblick"));
-  if ($("export-weekly")) $("export-weekly").addEventListener("click", () => exportSummary(24 * 7, "Wochenueberblick"));
+  if ($("export-summary")) $("export-summary").addEventListener("click", () => exportSummary(24, "Tagesüberblick"));
+  if ($("export-weekly")) $("export-weekly").addEventListener("click", () => exportSummary(24 * 7, "Wochenüberblick"));
 
   if ($("export-backup")) $("export-backup").addEventListener("click", exportBackup);
   if ($("import-backup")) {
@@ -275,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (membersOnlyChk) {
     membersOnlyChk.addEventListener("change", async () => {
       await chrome.storage.sync.set({ membersOnly: membersOnlyChk.checked === true });
-      showStatus("Mitgliedschafts-Filter uebernommen");
+      showStatus("Mitgliedschafts-Filter übernommen");
     });
   }
   const langFilter = $("languageFilter");
