@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.2 (2026-05-09)
+- Bugfix: Community-Namen wurden auf Detail-, Settings- und Leaderboard-Seiten mit dem Seiten-`<h1>` ueberschrieben. Folge: Eintraege wie "Change password", "GPT 5.5" oder Post-Titel landeten als Community-Namen im Round-Robin. Ab jetzt werden Namen nur noch auf der Community-Root-Seite erfasst.
+- Selbstheilung: Nav-Scan ueberschreibt bestehende Namen aktiv aus der zuverlaessigen Skool-Drawer-Komponente. Falsche Namen aus pre-v0.5.2 korrigieren sich beim naechsten Skool-Besuch automatisch — ohne dass der User etwas tun muss.
+- Detection: `?p=<id>` URL-Pattern wird jetzt auch als Post-Detail-URL erkannt. Skool nutzt sowohl `?c=` (z. B. Prompt-Piloten) als auch `?p=` (z. B. youtubebede) — beide werden jetzt sauber als Post-IDs normalisiert.
+
 ## v0.5.1 (2026-05-09)
 - Polish: Echte Umlaute in user-sichtbaren Strings — "Öffnen" statt "Oeffnen", "Löschen" statt "Loeschen", "für deinen Filter" statt "fuer", "Tagesüberblick" / "Wochenüberblick", "übernommen", "überschreiben", "zurückgesetzt", "nächsten Level".
 - Fix: Markdown-Export-Dateiname transliteriert Umlaute jetzt zu ue/oe/ae/ss, bevor er sanitized wird. Vorher wurde "Tagesüberblick" zu "tages-berblick", weil das Sanitize-Regex Umlaute mit "-" ersetzt hat.

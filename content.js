@@ -1,6 +1,15 @@
 /**
- * Skool Helper – Content Script (v0.5.1)
+ * Skool Helper – Content Script (v0.5.2)
  *
+ * v0.5.2: Bugfix — Community-Namen wurden auf Detail-/Settings-/Leaderboard-
+ *         Seiten mit dem Seitentitel ueberschrieben (Folge: "Change password",
+ *         Post-Titel etc. tauchten als Community-Namen im Round-Robin auf).
+ *         Fix: Namen nur noch auf der Community-Root-Seite erfassen.
+ *         Selbstheilung: Nav-Scan ueberschreibt jetzt aggressiv aus der
+ *         zuverlaessigen Skool-Drawer-Komponente, alte falsche Namen
+ *         korrigieren sich beim naechsten Skool-Besuch automatisch.
+ *         Plus: ?p= URL-Pattern wird jetzt auch als Post-Detail erkannt
+ *         (Skool nutzt sowohl ?c= als auch ?p= fuer Post-Detail-URLs).
  * v0.5.1: Polish — Transliterationen (Oeffnen, Loeschen, fuer, naechsten, ...)
  *         in user-sichtbaren Strings durch echte Umlaute ersetzt.
  *         Markdown-Export-Filename transliteriert Umlaute jetzt sauber zu
@@ -306,16 +315,19 @@
     const slug = currentCommunitySlug();
     if (!slug) return;
     const entry = state.communities[slug] || { manuallyAdded: false };
-    // Nur Namen aktualisieren, wenn wir NICHT auf einer Post-Detail-Seite sind
-    // (sonst grabben wir den Post-Titel statt den Community-Namen).
-    const isPostDetail = /\/post\//.test(location.pathname) || /\/-\//.test(location.pathname);
-    const currentName = currentCommunityName();
-    const alreadyHasRealName = entry.name && entry.name !== slug;
-    if (currentName && (!isPostDetail || !alreadyHasRealName)) {
-      entry.name = currentName;
-    } else if (!entry.name) {
-      entry.name = slug;
+    // Namen nur auf der Community-Root-Seite erfassen. Auf Post-Detail-,
+    // Settings-, Leaderboard- und sonstigen Sub-Seiten wuerde der erste <h1>
+    // den Post-Titel/Seitentitel zeigen — das hatte vor v0.5.2 zu polluteten
+    // Community-Namen wie "Change password" gefuehrt.
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    const isOnCommunityRoot = pathParts.length === 1
+      && !/[?&]p=/.test(location.search)
+      && !/[?&]c=/.test(location.search);
+    if (isOnCommunityRoot) {
+      const currentName = currentCommunityName();
+      if (currentName) entry.name = currentName;
     }
+    if (!entry.name) entry.name = slug;
     entry.lastVisit = Date.now();
     if (!entry.language || entry.languageSource !== "manual") {
       const lang = detectLanguage();
@@ -382,7 +394,12 @@
         state.communities[slug] = { name, lastVisit: 0, manuallyAdded: false, isMember: isMemberNow };
         added = true;
       } else {
-        if (!existing.name || existing.name === slug) { existing.name = name; added = true; }
+        // Nav-Namen sind die zuverlaessigste Quelle (kommen aus Skool's
+        // eigener Drawer-Komponente). Aggressiv ueberschreiben, damit
+        // alte falsche Werte (z. B. Post-Titel aus pre-v0.5.2-Bug) sich
+        // automatisch selbst heilen, sobald der User irgendeine Skool-
+        // Seite besucht und die Nav geladen ist.
+        if (existing.name !== name) { existing.name = name; added = true; }
         if (isMemberNow && existing.isMember !== true) { existing.isMember = true; added = true; }
       }
     });
@@ -644,23 +661,34 @@
     snippet = snippet.replace(/\s*(Liked|Like|\d+\s*(comments?|Kommentare?))[\s\S]*$/i, "").trim();
     snippet = snippet.slice(0, 240);
 
-    // URL: Post-Link oder aktuelle Detail-URL.
+    // URL: Post-Link oder aktuelle Detail-URL. Skool nutzt mehrere Schemata
+    // fuer Post-Detail-URLs: `/post/<id>`, `/-/<slug>`, `?c=<id>`, `?p=<id>`.
     let url = "";
-    const postLink = el.querySelector('a[href*="/post/"], a[href*="/-/"], a[href*="?c="]');
+    const postLink = el.querySelector('a[href*="/post/"], a[href*="/-/"], a[href*="?c="], a[href*="?p="]');
     if (postLink) url = postLink.href;
-    if (!url && (location.pathname.includes("/post") || location.pathname.includes("/-/") || location.search.includes("c="))) {
+    if (!url && (
+      location.pathname.includes("/post") ||
+      location.pathname.includes("/-/") ||
+      /[?&]c=/.test(location.search) ||
+      /[?&]p=/.test(location.search)
+    )) {
       url = location.href;
     }
 
-    // ID: Skool nutzt fuer Post-Detail-URLs `<community>?c=<post-id>`. Wir
-    // normalisieren auf path + `?c=<id>` (alle anderen Query-Parameter raus),
-    // damit derselbe Post nie zwei IDs bekommt.
+    // ID-Normalisierung: Skool's Post-Detail-URLs haben den Post-Identifier
+    // entweder als `?c=<id>` oder als `?p=<id>`. Wir normalisieren auf
+    // `path?c=<id>` bzw. `path?p=<id>` und werfen alle anderen Query-Params
+    // raus, damit derselbe Post nie zwei IDs bekommt (z. B. mit Tracking-
+    // Parametern dahinter).
     let id;
     if (url) {
       try {
         const u = new URL(url, location.origin);
         const c = u.searchParams.get("c");
-        id = c ? `${u.origin}${u.pathname}?c=${c}` : url.split("?")[0];
+        const p = u.searchParams.get("p");
+        if (c) id = `${u.origin}${u.pathname}?c=${c}`;
+        else if (p) id = `${u.origin}${u.pathname}?p=${p}`;
+        else id = url.split("?")[0];
       } catch (e) {
         id = url.split("?")[0];
       }
