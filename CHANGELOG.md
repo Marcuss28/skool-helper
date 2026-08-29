@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.4 (2026-08-29)
+- Bugfix: **Die gerade geoeffnete Community stand als "noch nie besucht" unter "Noch offen heute".** `maybeRecordVisit()` verglich nur den Slug mit dem zuletzt erfassten. Verschwand der Eintrag zwischendurch aus dem Speicher — durch "Besuchs-Historie zuruecksetzen", "Entfernen" in den Optionen oder einen Backup-Import — blieb `lastVisitSlug` stehen, der Besuch wurde nie neu registriert, und der Nav-Scan legte die Community gleich darauf mit `lastVisit: 0` wieder an. Sie stand dann im Rundlauf als offen, obwohl sie im Vordergrund lief. Jetzt wird zusaetzlich geprueft, ob ueberhaupt eine Besuchszeit vorliegt.
+- Gefunden beim Sichten der zweiten Videoaufnahme.
+
 ## v0.7.3 (2026-08-29)
 - Bugfix: **Skools eigene Footer-Links wurden als Communities erfasst.** "Community" (`skool.com/community`) und "Affiliates" (`skool.com/affiliate-program`) stehen im Footer jeder Skool-Seite und wurden vom Link-Scan eingesammelt — sie tauchten dann dauerhaft im Rundlauf auf und liessen sich nie "abhaken", weil man sie nie besucht. `RESERVED_SLUGS` um die Systemseiten erweitert (community, affiliates, affiliate-program, support, discovery, pricing, download, refer, students, games, contact, jobs, brand, security, status, sitemap).
 - Selbstheilung: Bestehende Fehleintraege werden beim naechsten Laden automatisch aus der Community-Liste entfernt. Risikolos, es sind keine echten Communities.

@@ -1,6 +1,11 @@
 /**
- * Skool Helper – Content Script (v0.7.3)
+ * Skool Helper – Content Script (v0.7.4)
  *
+ * v0.7.4: Bugfix — die gerade geoeffnete Community stand als "noch nie
+ *         besucht" im Rundlauf, wenn ihr Eintrag zwischendurch aus dem
+ *         Speicher verschwunden war (Reset, Entfernen, Backup-Import).
+ *         `maybeRecordVisit` prueft jetzt auch, ob ueberhaupt eine
+ *         Besuchszeit vorliegt, statt nur den Slug zu vergleichen.
  * v0.7.3: Bugfix — Skools eigene Footer-Links ("Community" und "Affiliates")
  *         wurden als Communities erfasst und landeten im Rundlauf.
  *         RESERVED_SLUGS um die Systemseiten erweitert; bestehende
@@ -844,7 +849,16 @@
 
   function maybeRecordVisit() {
     const slug = currentCommunitySlug();
-    if (slug && slug !== lastVisitSlug) {
+    if (!slug) return;
+    // Der Slug-Vergleich allein reichte nicht (v0.7.4): Verschwindet der
+    // Eintrag aus dem Speicher, waehrend man auf der Seite bleibt — durch
+    // "Besuchs-Historie zuruecksetzen", durch "Entfernen" in den Optionen
+    // oder durch einen Backup-Import — dann blieb `lastVisitSlug` stehen und
+    // der Besuch wurde nie neu registriert. Der Nav-Scan legte die Community
+    // gleich darauf mit `lastVisit: 0` wieder an, und sie stand als "noch nie
+    // besucht" im Rundlauf, obwohl man sie gerade offen hatte.
+    const entry = state.communities[slug];
+    if (slug !== lastVisitSlug || !entry || !entry.lastVisit) {
       recordCurrentVisit();
       lastVisitSlug = slug;
     }
