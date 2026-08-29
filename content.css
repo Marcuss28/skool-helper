@@ -262,12 +262,18 @@
 }
 
 
-/* Scrollbare Zeilen-Liste pro Gruppe: ~4 Eintraege sichtbar */
+/* Scrollbare Zeilen-Liste pro Gruppe: ~8 Eintraege sichtbar (v0.7.2).
+   Vorher 152px = 4 Eintraege. Zu wenig, seit die Slots die Gewichtung
+   umgedreht haben: "Noch offen heute" ist jetzt kurz, "Heute besucht"
+   dafuer lang — und ausgerechnet die lange Liste war weggescrollt. */
 #skool-helper-sidebar .sh-rr-rows {
-  max-height: 152px;
+  max-height: 300px;
   overflow-y: auto;
   padding-right: 2px;
 }
+/* Der Rundlauf braucht mehr Hoehe als die uebrigen Sektionen. Gezielt nur
+   hier, damit Priority-Posts, Cross-Feed und Gemerkt unveraendert bleiben. */
+#skool-helper-sidebar #sh-rr-body { max-height: 52vh; }
 #skool-helper-sidebar .sh-rr-rows::-webkit-scrollbar { width: 6px; }
 #skool-helper-sidebar .sh-rr-rows::-webkit-scrollbar-track { background: transparent; }
 #skool-helper-sidebar .sh-rr-rows::-webkit-scrollbar-thumb {

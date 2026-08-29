@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.7.3 (2026-08-29)
+- Bugfix: **Skools eigene Footer-Links wurden als Communities erfasst.** "Community" (`skool.com/community`) und "Affiliates" (`skool.com/affiliate-program`) stehen im Footer jeder Skool-Seite und wurden vom Link-Scan eingesammelt — sie tauchten dann dauerhaft im Rundlauf auf und liessen sich nie "abhaken", weil man sie nie besucht. `RESERVED_SLUGS` um die Systemseiten erweitert (community, affiliates, affiliate-program, support, discovery, pricing, download, refer, students, games, contact, jobs, brand, security, status, sitemap).
+- Selbstheilung: Bestehende Fehleintraege werden beim naechsten Laden automatisch aus der Community-Liste entfernt. Risikolos, es sind keine echten Communities.
+- Gefunden beim Sichten einer Videoaufnahme — im Rundlauf standen "Affiliates" und "Community" ganz oben unter "Noch offen heute".
+
+## v0.7.2 (2026-08-29)
+- UX: Die Zeilen-Listen im Rundlauf zeigen jetzt **rund acht statt vier Eintraege**, bevor gescrollt werden muss (`max-height` 152px auf 300px). Der Rundlauf-Bereich selbst darf zusaetzlich hoeher werden (52vh statt der allgemeinen 36vh); Priority-Posts, Cross-Feed und Gemerkt bleiben unveraendert.
+- Hintergrund: Mit den Slots aus v0.7.0 hat sich die Gewichtung umgedreht. "Noch offen heute" ist kurz geworden, "Heute besucht" dafuer lang — und ausgerechnet die lange Liste war nach vier Eintraegen abgeschnitten.
+
 ## v0.7.1 (2026-08-29)
 - Bugfix: **Mitgliedschafts-Erkennung.** Der Besuch einer beliebigen Community-Seite hat sie als eigene Mitgliedschaft markiert — auch fremde Communities aus Recherche, Discovery-Suche oder geteilten Links. Folge: der Filter "Nur eigene Mitgliedschaften" war praktisch wirkungslos und die Community-Liste lief mit Fremd-Communities voll. `isMember` kommt jetzt ausschliesslich aus dem Nav-Scan; Skools eigener Drawer listet nur echte Mitgliedschaften.
 - Bugfix, zweiter Teil: Ein sichtbarer Beitritts-Button ("JOIN GROUP" / "GRUPPE BEITRETEN") setzt die Markierung jetzt aktiv auf *kein* Mitglied. Noetig, weil der Nav-Scan mit den Selektoren `nav`/`aside` auch den Link der gerade geoeffneten fremden Community einsammelt — das Entfernen des alten Fallbacks allein haette den Fehler nicht behoben.

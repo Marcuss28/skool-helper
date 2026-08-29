@@ -1,6 +1,11 @@
 /**
- * Skool Helper – Content Script (v0.7.1)
+ * Skool Helper – Content Script (v0.7.3)
  *
+ * v0.7.3: Bugfix — Skools eigene Footer-Links ("Community" und "Affiliates")
+ *         wurden als Communities erfasst und landeten im Rundlauf.
+ *         RESERVED_SLUGS um die Systemseiten erweitert; bestehende
+ *         Fehleintraege werden beim naechsten Laden automatisch entfernt.
+ * v0.7.2: Rundlauf-Listen zeigen ~8 statt 4 Eintraege (nur CSS).
  * v0.7.1: Bugfix Mitgliedschafts-Erkennung — der Besuch einer beliebigen
  *         Community markierte sie als eigene Mitgliedschaft. Dadurch war
  *         der Filter "Nur eigene Mitgliedschaften" wirkungslos und die
@@ -104,7 +109,15 @@
   const RESERVED_SLUGS = new Set([
     "", "about", "login", "signup", "auth", "settings", "password", "notifications",
     "invite", "billing", "explore", "search", "new", "help", "legal", "privacy",
-    "terms", "careers", "press", "api", "docs", "blog"
+    "terms", "careers", "press", "api", "docs", "blog",
+    // v0.7.3: Skools eigene Footer- und Systemseiten. Ohne diese landeten
+    // "Community" (skool.com/community) und "Affiliates"
+    // (skool.com/affiliate-program) als vermeintliche Communities im
+    // Rundlauf — sie stehen im Footer jeder Skool-Seite und wurden vom
+    // Link-Scan eingesammelt.
+    "community", "affiliates", "affiliate-program", "affiliate", "support",
+    "discovery", "pricing", "download", "refer", "students", "games",
+    "contact", "jobs", "brand", "security", "status", "sitemap"
   ]);
 
   const state = {
@@ -161,6 +174,17 @@
 
       const local = await chrome.storage.local.get({ communities: {}, bookmarks: {}, postHistory: {}, updateInfo: null });
       state.communities = local.communities || {};
+      // Selbstheilung (v0.7.3): Slugs, die inzwischen als Skool-Systemseite
+      // erkannt sind, aus dem Bestand werfen. Betrifft Eintraege, die aeltere
+      // Versionen erfasst haben ("Community", "Affiliates"). Risikolos — das
+      // sind keine echten Communities, es geht nichts verloren.
+      {
+        const muell = Object.keys(state.communities).filter(s => RESERVED_SLUGS.has(s));
+        if (muell.length) {
+          for (const s of muell) delete state.communities[s];
+          saveCommunities();
+        }
+      }
       state.bookmarks = local.bookmarks || {};
       state.postHistory = local.postHistory || {};
       state.updateInfo = local.updateInfo || null;

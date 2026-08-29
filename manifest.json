@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Skool Helper – Keyword Feed & Highlights",
-  "version": "0.7.1",
+  "version": "0.7.3",
   "description": "Hebt relevante Skool-Beiträge anhand deiner Keywords hervor, zeigt einen Community Round-Robin (welche Communities heute noch offen sind), bietet Kommentar-Ideen. Jede Interaktion bleibt manuell.",
   "permissions": [
     "storage",
