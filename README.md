@@ -6,6 +6,7 @@ Chrome-Extension für Skool-Poweruser: markiert Posts mit deinen Keywords, zeigt
 
 - **Keyword-Highlighting**: Posts mit deinen Schlüsselwörtern bekommen einen goldenen Rahmen und ein Badge im Skool-Feed.
 - **Community-Rundlauf**: Sidebar zeigt, welche deiner Communities du heute noch nicht besucht hast (Reset um Mitternacht).
+- **Slots**: Pro Community festlegen, wie oft sie im Rundlauf auftaucht — **Fest** (täglich), **Skim** (alle 14 Tage) oder **Aus**. Bildet deine Crawl-Routine ab, statt alle Communities gleich zu gewichten. Ohne gesetzten Slot bleibt alles wie bisher.
 - **Priority-Posts**: Gesammelte Liste aller markierten Posts auf der aktuellen Seite mit Direktsprung und Kommentar-Vorlagen.
 - **Cross-Community-Feed (7 Tage)**: Alle Treffer der letzten Woche über alle Communities hinweg in einer Ansicht.
 - **Gemerkt (Read-Later)**: One-Click-Bookmark für Posts, spätere Wiederfindung.
@@ -33,7 +34,7 @@ Klick auf das Extension-Icon &rarr; **Einstellungen öffnen**, oder aus der Side
 
 - Keywords (eines pro Zeile)
 - Kommentar-Vorlagen
-- Communities-Liste (mit Sprache &amp; Mitgliedschafts-Status pro Eintrag)
+- Communities-Liste (mit Sprache, Mitgliedschafts-Status und Slot pro Eintrag)
 - Ausschluss-Keywords / -Autoren
 - Sprachfilter für den Rundlauf
 - Anzeige-Extras (Timer, Engagement-Log)

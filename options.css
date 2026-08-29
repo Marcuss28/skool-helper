@@ -121,7 +121,8 @@ button.danger:hover { background: #991b1b; }
 .com-del:hover { background: #7f1d1d; color: #fff; border-color: #7f1d1d; }
 footer { margin-top: 24px; color: #6b7280; font-size: 12px; }
 
-.com-lang {
+.com-lang,
+.com-slot {
   background: #0f172a;
   border: 1px solid #4b5563;
   color: #e5e7eb;
@@ -149,3 +150,10 @@ select#languageFilter {
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* Slot-Auswahl pro Community (v0.7.0) — faerbt sich nach gewaehltem Slot,
+   damit die Routine in der langen Liste auf einen Blick lesbar ist. */
+.com-slot { min-width: 120px; }
+.com-slot[data-slot="fest"] { border-color: #d4a537; color: #d4a537; }
+.com-slot[data-slot="skim"] { border-color: #6b7280; color: #9ca3af; }
+.com-slot[data-slot="aus"]  { border-color: #4b5563; color: #6b7280; }

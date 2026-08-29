@@ -47,6 +47,12 @@ function renderCommunities(communities) {
         <option value="en" ${c.language === "en" ? "selected" : ""}>Englisch</option>
         <option value="other" ${c.language === "other" ? "selected" : ""}>Andere</option>
       </select>
+      <select class="com-slot" data-slot="${escapeHtml(c.slot || "")}" data-slug="${escapeHtml(slug)}" title="Slot: Fest = täglich im Rundlauf, Skim = alle 14 Tage, Aus = nie">
+        <option value="" ${!c.slot ? "selected" : ""}>Slot?</option>
+        <option value="fest" ${c.slot === "fest" ? "selected" : ""}>Fest (täglich)</option>
+        <option value="skim" ${c.slot === "skim" ? "selected" : ""}>Skim (14 Tage)</option>
+        <option value="aus" ${c.slot === "aus" ? "selected" : ""}>Aus</option>
+      </select>
       <div class="com-time">${c.lastVisit ? formatRelative(c.lastVisit) : "noch nicht besucht"}</div>
       <button class="com-del" data-slug="${escapeHtml(slug)}" title="Aus Rundlauf entfernen">Entfernen</button>
     </div>
@@ -76,6 +82,27 @@ function renderCommunities(communities) {
         delete communities[slug].languageSource;
       }
       await chrome.storage.local.set({ communities });
+    });
+  });
+
+  box.querySelectorAll(".com-slot").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const slug = sel.getAttribute("data-slug");
+      const value = sel.value;
+      const { communities = {} } = await chrome.storage.local.get({ communities: {} });
+      if (!communities[slug]) return;
+      if (value) {
+        communities[slug].slot = value;
+      } else {
+        delete communities[slug].slot;
+      }
+      await chrome.storage.local.set({ communities });
+      sel.setAttribute("data-slot", value || "");
+      const label = value === "fest" ? "fester Slot"
+                  : value === "skim" ? "Skim-Slot"
+                  : value === "aus"  ? "aus dem Rundlauf"
+                  : "ohne Slot";
+      showStatus(`${communities[slug].name || slug}: ${label}`);
     });
   });
 

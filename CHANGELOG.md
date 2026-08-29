@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.0 (2026-08-29)
+- Feature: **Slots pro Community.** In den Optionen bekommt jede Community ein Slot-Dropdown: **Fest** (taeglich im Rundlauf), **Skim** (erscheint erst wieder, wenn 14 Tage seit dem letzten Besuch vergangen sind) oder **Aus** (nie im Rundlauf). Damit bildet der Rundlauf die tatsaechliche Crawl-Routine ab, statt jede je gesehene Community gleich zu gewichten.
+- Rundlauf: feste Slots stehen oben, dann Communities ohne Slot, dann faellige Skim-Slots. Badge `F` / `S` zeigt den Slot in der Zeile.
+- Kompatibilitaet: Communities **ohne** gesetzten Slot verhalten sich exakt wie bisher (taeglich im Rundlauf). Beim Update verschwindet nichts stumm — der Slot ist eine bewusste Entscheidung pro Community, kein Default.
+- "Heute besucht" blendet Communities mit Slot **Aus** ebenfalls aus.
+- Options-CSS: das Slot-Dropdown faerbt sich nach Auswahl (gold = fest, grau = skim/aus), damit die Routine in einer langen Liste auf einen Blick lesbar ist.
+
 ## v0.6.2 (2026-05-09)
 - Detection: `currentCommunityName()` liest jetzt primaer aus `<meta property="og:title">` und `<title>`. Skool setzt beide auf Community-Root-Seiten zuverlaessig auf den korrekten Community-Namen. Vorher haben wir mit Heuristik durch H1/H2 gesucht — was teilweise gut, aber nicht 100% verlaesslich war. Die alte H1-Heuristik bleibt als drittes Safety-Net.
 - Damit ist die Pollution-Quelle geschlossen: neue Communities werden ab jetzt direkt mit dem korrekten Namen erfasst. Bestehende falsche Namen aus pre-v0.6.2 koennen mit dem Bulk-Reset aus v0.6.1 ("Nur Namen leeren" in den Optionen) korrigiert werden.

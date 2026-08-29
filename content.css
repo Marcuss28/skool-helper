@@ -419,3 +419,18 @@
   text-decoration: none;
   display: inline-block;
 }
+
+/* Slot-Badge im Rundlauf (v0.7.0): F = fester Slot, S = Skim-Slot.
+   Communities ohne Slot bekommen kein Badge — Bestandsverhalten. */
+.sh-rr-slot {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+.sh-rr-slot-fest { color: #d4a537; }
+.sh-rr-slot-skim { color: #8b93a1; }

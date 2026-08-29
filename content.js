@@ -1,6 +1,12 @@
 /**
- * Skool Helper – Content Script (v0.6.2)
+ * Skool Helper – Content Script (v0.7.0)
  *
+ * v0.7.0: Slots — jede Community bekommt in den Optionen einen Slot:
+ *         "fest" (taeglich im Rundlauf), "skim" (erst nach 14 Tagen ohne
+ *         Besuch wieder faellig) oder "aus" (nie im Rundlauf). Ohne Wert
+ *         verhaelt sich eine Community wie bisher, damit beim Update
+ *         nichts stumm verschwindet. Feste Slots stehen im Rundlauf oben,
+ *         Badge "F"/"S" zeigt den Slot an.
  * v0.6.2: Robuste Community-Name-Erkennung — `currentCommunityName()` liest
  *         jetzt primaer aus `<meta property="og:title">`, dann aus
  *         `<title>`. Skool setzt beide auf Community-Root zuverlaessig auf
@@ -85,6 +91,10 @@
   const DEFAULT_KEYWORDS = DEFAULTS.keywords;
   const DEFAULT_COMMENT_TEMPLATES = DEFAULTS.commentTemplates;
   const VISIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+  // Skim-Slots erscheinen erst wieder im Rundlauf, wenn seit dem letzten
+  // Besuch so viel Zeit vergangen ist. 14 Tage = der 14-taegige Rhythmus
+  // aus der Crawl-Routine.
+  const SKIM_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000;
   const RESERVED_SLUGS = new Set([
     "", "about", "login", "signup", "auth", "settings", "password", "notifications",
     "invite", "billing", "explore", "search", "new", "help", "legal", "privacy",
@@ -978,9 +988,16 @@
     if (!body) return;
 
     const now = Date.now();
+    const slotRank = (c) => {
+      const slot = c.slot || "";
+      if (slot === "fest") return 0;
+      if (slot === "skim") return 2;
+      if (slot === "aus") return 3;
+      return 1; // unsortiert
+    };
     const entries = Object.entries(state.communities || {})
       .map(([slug, c]) => ({ slug, ...c }))
-      .sort((a, b) => (a.name || a.slug).localeCompare(b.name || b.slug));
+      .sort((a, b) => (slotRank(a) - slotRank(b)) || (a.name || a.slug).localeCompare(b.name || b.slug));
 
     if (!entries.length) {
       body.innerHTML = '<div class="sh-empty">Noch keine Communities erfasst. Öffne eine deiner Communities, oder pflege sie in den Einstellungen.</div>';
@@ -999,9 +1016,28 @@
       if (!state.membersOnly) return true;
       return c.isMember === true;
     }
+    /**
+     * Slot-Filter — bildet die Crawl-Routine im Rundlauf ab.
+     *
+     *   "fest"      taeglich im Rundlauf (wie bisher)
+     *   "skim"      erst wieder faellig, wenn SKIM_INTERVAL_MS seit dem
+     *               letzten Besuch vergangen ist
+     *   "aus"       nie im Rundlauf
+     *   (kein Wert) wie "fest" — Bestandsverhalten. Ohne diese Regel wuerden
+     *               beim Update alle bisherigen Communities stumm verschwinden.
+     */
+    function passesSlotFilter(c) {
+      const slot = c.slot || "";
+      if (slot === "aus") return false;
+      if (slot === "skim") {
+        if (!c.lastVisit) return true;
+        return (now - c.lastVisit) >= SKIM_INTERVAL_MS;
+      }
+      return true;
+    }
     const todayThreshold = startOfToday();
-    const notToday = entries.filter(c => (!c.lastVisit || c.lastVisit < todayThreshold) && passesLangFilter(c) && passesMemberFilter(c));
-    const today = entries.filter(c => c.lastVisit && c.lastVisit >= todayThreshold && passesMemberFilter(c));
+    const notToday = entries.filter(c => (!c.lastVisit || c.lastVisit < todayThreshold) && passesLangFilter(c) && passesMemberFilter(c) && passesSlotFilter(c));
+    const today = entries.filter(c => c.lastVisit && c.lastVisit >= todayThreshold && passesMemberFilter(c) && (c.slot || "") !== "aus");
     const currentSlug = currentCommunitySlug();
 
     const STALE_POINTS_MS = 24 * 60 * 60 * 1000;
@@ -1018,6 +1054,13 @@
       return `<span class="sh-rr-points ${stale ? 'sh-rr-points-stale' : ''}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
     };
 
+    const renderSlotBadge = (c) => {
+      const slot = c.slot || "";
+      if (slot === "fest") return '<span class="sh-rr-slot sh-rr-slot-fest" title="Fester Slot — täglich">F</span>';
+      if (slot === "skim") return '<span class="sh-rr-slot sh-rr-slot-skim" title="Skim-Slot — alle 14 Tage">S</span>';
+      return "";
+    };
+
     const renderRow = (c, isToday) => {
       const count = state.sessionCounts[c.slug] || 0;
       const isCurrent = c.slug === currentSlug;
@@ -1027,6 +1070,7 @@
            data-slug="${escapeHtml(c.slug)}">
           <span class="sh-rr-dot"></span>
           <span class="sh-rr-name" title="${escapeHtml(c.slug)}">${escapeHtml(c.name || c.slug)}</span>
+          ${renderSlotBadge(c)}
           ${renderPointsBadge(c)}
           ${count > 0 ? `<span class="sh-rr-count" title="Treffer in dieser Session">${count}</span>` : ""}
           <span class="sh-rr-time">${escapeHtml(formatRelativeTime(c.lastVisit))}</span>
@@ -1039,7 +1083,7 @@
     if (notToday.length === 0) {
       const anyNotTodayUnfiltered = entries.some(c => !c.lastVisit || c.lastVisit < todayThreshold);
       if (anyNotTodayUnfiltered) {
-        notTodayEmptyMsg = '<div class="sh-empty sh-empty-sm">Keine passenden Communities offen. Filter (Sprache/Mitgliedschaft) blenden weitere aus.</div>';
+        notTodayEmptyMsg = '<div class="sh-empty sh-empty-sm">Keine passenden Communities offen. Filter (Sprache/Mitgliedschaft/Slot) blenden weitere aus.</div>';
       } else {
         notTodayEmptyMsg = '<div class="sh-empty sh-empty-sm">🎉 Alle Communities heute schon besucht.</div>';
       }
