@@ -1,6 +1,12 @@
 /**
- * Skool Helper – Content Script (v0.7.5)
+ * Skool Helper – Content Script (v0.7.6)
  *
+ * v0.7.6: Bugfix Spracherkennung — `<html lang>` stand an erster Stelle,
+ *         beschreibt aber die UI-Sprache des Kontos, nicht die der
+ *         Community. Alle Communities bekamen dadurch dieselbe Sprache und
+ *         der Sprachfilter war wirkungslos. Jetzt entscheidet der
+ *         Seiteninhalt; die eigene (deutsche) Sidebar wird aus der
+ *         Textprobe herausgerechnet.
  * v0.7.5: Die Options-Seite zieht die Community-Liste jetzt live nach
  *         (Aenderung in options.js). Vorher zeigte ein offen gelassener
  *         Options-Tab dauerhaft den Stand vom Oeffnen.
@@ -533,20 +539,40 @@
   }
 
   function detectLanguage() {
-    // 1) <html lang="...">
+    // Reihenfolge umgedreht (v0.7.6). Frueher stand `<html lang>` an erster
+    // Stelle — das beschreibt aber die UI-Sprache des Skool-Kontos, nicht die
+    // Sprache der Community. Skool liefert dort durchgaengig denselben Wert,
+    // weshalb *alle* Communities dieselbe Sprache bekamen (bei englischer
+    // Oberflaeche also auch die deutschen). Der Sprachfilter war damit wertlos.
+    // Jetzt entscheidet der tatsaechliche Seiteninhalt, `<html lang>` ist nur
+    // noch Rueckfallebene, wenn die Textprobe nichts hergibt.
+    const sample = languageSample();
+    if (sample) {
+      const deChars = (sample.match(/[äöüß]/g) || []).length;
+      const deWords = (sample.match(/\b(und|der|die|das|nicht|ein|eine|ist|für|auch|mit|wird|sind|oder|über|bei)\b/g) || []).length;
+      const enWords = (sample.match(/\b(the|and|for|with|that|this|have|from|your|about|which)\b/g) || []).length;
+      const deScore = deChars * 2 + deWords;
+      if (deScore >= 10 && deScore > enWords * 1.3) return "de";
+      if (enWords >= 10 && enWords > deScore * 1.3) return "en";
+    }
     const htmlLang = (document.documentElement.getAttribute("lang") || "").toLowerCase();
     if (htmlLang.startsWith("de")) return "de";
     if (htmlLang.startsWith("en")) return "en";
-    // 2) Heuristik auf Body-Text (Umlaute + haeufige DE-Woerter)
-    const sample = (document.body && document.body.innerText || "").slice(0, 5000).toLowerCase();
-    if (!sample) return null;
-    const deChars = (sample.match(/[äöüß]/g) || []).length;
-    const deWords = (sample.match(/\b(und|der|die|das|nicht|ein|eine|ist|für|auch|mit|wird|sind|oder|über|bei)\b/g) || []).length;
-    const enWords = (sample.match(/\b(the|and|for|with|that|this|have|from|your|about|which)\b/g) || []).length;
-    const deScore = deChars * 2 + deWords;
-    if (deScore >= 10 && deScore > enWords * 1.3) return "de";
-    if (enWords >= 10 && enWords > deScore * 1.3) return "en";
     return null;
+  }
+
+  /**
+   * Textprobe fuer die Spracherkennung — ohne die eigene Sidebar.
+   * Deren Beschriftungen ("Community-Rundlauf", "Noch offen heute",
+   * "Gemerkt", ...) sind durchgehend deutsch und haetten jede Seite in
+   * Richtung Deutsch gezogen, sobald die Sidebar sichtbar ist.
+   */
+  function languageSample() {
+    let text = (document.body && document.body.innerText) || "";
+    if (!text) return "";
+    const sb = document.getElementById("skool-helper-sidebar");
+    if (sb && sb.innerText) text = text.split(sb.innerText).join(" ");
+    return text.slice(0, 5000).toLowerCase();
   }
 
   function findPostContainers() {

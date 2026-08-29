@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.6 (2026-08-29)
+- Bugfix: **Die Spracherkennung las zuerst `<html lang>`.** Das beschreibt die UI-Sprache des Skool-Kontos, nicht die Sprache der Community — Skool liefert dort durchgaengig denselben Wert. Folge: *alle* Communities bekamen dieselbe Sprache (bei englischer Oberflaeche auch die deutschen), und der Sprachfilter "Nur deutsche Communities" liess nichts durch. Jetzt entscheidet der tatsaechliche Seiteninhalt; `<html lang>` ist nur noch Rueckfallebene.
+- Bugfix im selben Zug: Die **eigene Sidebar wird aus der Textprobe herausgerechnet.** Ihre Beschriftungen sind durchgehend deutsch ("Community-Rundlauf", "Noch offen heute", "Gemerkt") und haetten jede Seite in Richtung Deutsch gezogen, sobald die Sidebar sichtbar ist — der Fix haette den Fehler sonst nur umgedreht.
+- Automatisch erkannte Sprachen korrigieren sich beim naechsten Besuch von selbst. Manuell gesetzte bleiben unangetastet.
+
 ## v0.7.5 (2026-08-29)
 - Bugfix: **Die Options-Seite aktualisierte die Community-Liste nicht.** Sie wurde nur beim Oeffnen der Seite gelesen. Wer die Optionen in einem Tab offen liess und nebenher auf Skool surfte, sah dauerhaft einen veralteten Stand — im Extremfall "Noch keine Communities erfasst", waehrend die Sidebar bereits vier anzeigte. Jetzt haengt die Liste am `chrome.storage.onChanged`-Listener und zieht live nach.
 - Detail: Waehrend man einen Community-Namen editiert, wird bewusst nicht neu gerendert — ein Rerender wuerde Fokus und halbfertige Eingabe verwerfen.
