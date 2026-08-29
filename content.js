@@ -1,6 +1,9 @@
 /**
- * Skool Helper – Content Script (v0.7.4)
+ * Skool Helper – Content Script (v0.7.5)
  *
+ * v0.7.5: Die Options-Seite zieht die Community-Liste jetzt live nach
+ *         (Aenderung in options.js). Vorher zeigte ein offen gelassener
+ *         Options-Tab dauerhaft den Stand vom Oeffnen.
  * v0.7.4: Bugfix — die gerade geoeffnete Community stand als "noch nie
  *         besucht" im Rundlauf, wenn ihr Eintrag zwischendurch aus dem
  *         Speicher verschwunden war (Reset, Entfernen, Backup-Import).

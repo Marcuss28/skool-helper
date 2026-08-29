@@ -455,7 +455,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Storage-Listener: wenn Background den Update-Check abgeschlossen hat,
   // Badge live aktualisieren ohne Reload.
+  //
+  // v0.7.5: Die Community-Liste wird jetzt ebenfalls live nachgezogen.
+  // Vorher las `load()` sie nur beim Oeffnen der Seite. Wer die Optionen in
+  // einem Tab offen liess und nebenher auf Skool surfte, sah dauerhaft einen
+  // veralteten Stand — im Extremfall "Noch keine Communities erfasst",
+  // waehrend die Sidebar schon vier zeigte.
+  //
+  // Beim Tippen im Namensfeld wird bewusst NICHT neu gerendert: Ein Rerender
+  // wuerde den Fokus und die halbfertige Eingabe wegwerfen.
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.updateInfo) applyUpdateBadge();
+    if (area === "local" && changes.communities) {
+      const aktivesFeld = document.activeElement;
+      const tipptGerade = aktivesFeld && aktivesFeld.classList
+        && aktivesFeld.classList.contains("com-name-input");
+      if (!tipptGerade) renderCommunities(changes.communities.newValue || {});
+    }
   });
 });

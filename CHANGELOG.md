@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.5 (2026-08-29)
+- Bugfix: **Die Options-Seite aktualisierte die Community-Liste nicht.** Sie wurde nur beim Oeffnen der Seite gelesen. Wer die Optionen in einem Tab offen liess und nebenher auf Skool surfte, sah dauerhaft einen veralteten Stand — im Extremfall "Noch keine Communities erfasst", waehrend die Sidebar bereits vier anzeigte. Jetzt haengt die Liste am `chrome.storage.onChanged`-Listener und zieht live nach.
+- Detail: Waehrend man einen Community-Namen editiert, wird bewusst nicht neu gerendert — ein Rerender wuerde Fokus und halbfertige Eingabe verwerfen.
+- Gefunden beim Sichten der dritten Videoaufnahme: Der Options-Tab stand seit dem Zuruecksetzen offen und zeigte deshalb eine leere Liste, obwohl vier Communities erfasst waren.
+
 ## v0.7.4 (2026-08-29)
 - Bugfix: **Die gerade geoeffnete Community stand als "noch nie besucht" unter "Noch offen heute".** `maybeRecordVisit()` verglich nur den Slug mit dem zuletzt erfassten. Verschwand der Eintrag zwischendurch aus dem Speicher — durch "Besuchs-Historie zuruecksetzen", "Entfernen" in den Optionen oder einen Backup-Import — blieb `lastVisitSlug` stehen, der Besuch wurde nie neu registriert, und der Nav-Scan legte die Community gleich darauf mit `lastVisit: 0` wieder an. Sie stand dann im Rundlauf als offen, obwohl sie im Vordergrund lief. Jetzt wird zusaetzlich geprueft, ob ueberhaupt eine Besuchszeit vorliegt.
 - Gefunden beim Sichten der zweiten Videoaufnahme.
