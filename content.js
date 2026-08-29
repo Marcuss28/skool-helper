@@ -1,6 +1,12 @@
 /**
- * Skool Helper – Content Script (v0.7.0)
+ * Skool Helper – Content Script (v0.7.1)
  *
+ * v0.7.1: Bugfix Mitgliedschafts-Erkennung — der Besuch einer beliebigen
+ *         Community markierte sie als eigene Mitgliedschaft. Dadurch war
+ *         der Filter "Nur eigene Mitgliedschaften" wirkungslos und die
+ *         Community-Liste lief mit fremden Communities voll. isMember
+ *         kommt jetzt nur noch aus dem Nav-Scan, und ein sichtbarer
+ *         Beitritts-Button setzt die Markierung aktiv auf "kein Mitglied".
  * v0.7.0: Slots — jede Community bekommt in den Optionen einen Slot:
  *         "fest" (taeglich im Rundlauf), "skim" (erst nach 14 Tagen ohne
  *         Besuch wieder faellig) oder "aus" (nie im Rundlauf). Ohne Wert
@@ -454,12 +460,44 @@
         if (isMemberNow && existing.isMember !== true) { existing.isMember = true; added = true; }
       }
     });
+    // Negatives Signal schlaegt das positive: zeigt die Seite einen
+    // Beitritts-Button, ist der Nutzer hier definitiv KEIN Mitglied — auch
+    // wenn der Nav-Scan den Slug eingesammelt hat (die Selektoren "nav" und
+    // "aside" erfassen auch den Link der gerade geoeffneten fremden
+    // Community). Ohne diese Korrektur bliebe die Fehlmarkierung bestehen.
     const currentSlug = currentCommunitySlug();
-    if (currentSlug && state.communities[currentSlug] && !state.communities[currentSlug].isMember) {
-      state.communities[currentSlug].isMember = true;
-      added = true;
+    if (currentSlug && state.communities[currentSlug] && hasJoinButton()) {
+      if (state.communities[currentSlug].isMember !== false) {
+        state.communities[currentSlug].isMember = false;
+        added = true;
+      }
     }
+    // Frueher stand hier ein Fallback: "aktuell geoeffnete Community = ist
+    // Mitgliedschaft". Das war falsch — jede nur *angeschaute* fremde
+    // Community wurde dadurch als Mitgliedschaft markiert (Recherche,
+    // Discovery-Suche, geteilte Links). Folge: `membersOnly` filterte
+    // praktisch nichts mehr und die Liste lief mit Fremd-Communities voll.
+    // isMember kommt jetzt ausschliesslich aus dem Nav-Scan (memberSlugs) —
+    // Skools eigener Drawer listet nur echte Mitgliedschaften.
+    // Bestehende Falschmarkierungen bereinigt der Button
+    // "Mitgliedschaften zuruecksetzen" in den Optionen.
     if (added) saveCommunities();
+  }
+
+  /**
+   * Erkennt den Beitritts-Button auf Community- und About-Seiten.
+   * Skool rendert ihn je nach UI-Sprache als "JOIN GROUP" oder
+   * "GRUPPE BEITRETEN". Nur exakte Treffer zaehlen — Fliesstext wie
+   * "join our group" in einem Post soll nicht anschlagen.
+   */
+  function hasJoinButton() {
+    const LABELS = new Set(["join group", "gruppe beitreten", "beitreten", "join"]);
+    const nodes = document.querySelectorAll("button, a[role='button']");
+    for (const n of nodes) {
+      const t = (n.textContent || "").trim().toLowerCase();
+      if (t.length <= 20 && LABELS.has(t)) return true;
+    }
+    return false;
   }
 
   function detectLanguage() {

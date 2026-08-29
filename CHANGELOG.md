@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.1 (2026-08-29)
+- Bugfix: **Mitgliedschafts-Erkennung.** Der Besuch einer beliebigen Community-Seite hat sie als eigene Mitgliedschaft markiert — auch fremde Communities aus Recherche, Discovery-Suche oder geteilten Links. Folge: der Filter "Nur eigene Mitgliedschaften" war praktisch wirkungslos und die Community-Liste lief mit Fremd-Communities voll. `isMember` kommt jetzt ausschliesslich aus dem Nav-Scan; Skools eigener Drawer listet nur echte Mitgliedschaften.
+- Bugfix, zweiter Teil: Ein sichtbarer Beitritts-Button ("JOIN GROUP" / "GRUPPE BEITRETEN") setzt die Markierung jetzt aktiv auf *kein* Mitglied. Noetig, weil der Nav-Scan mit den Selektoren `nav`/`aside` auch den Link der gerade geoeffneten fremden Community einsammelt — das Entfernen des alten Fallbacks allein haette den Fehler nicht behoben.
+- Options: Neuer Button **"Mitgliedschaften zuruecksetzen"** — entfernt alle `isMember`-Markierungen, behaelt Namen, Besuchshistorie, Sprache, Punkte und Slots. Der Nav-Scan fuellt die Flags ueber die naechsten Skool-Besuche korrekt wieder auf. Bewusst **kein** Auto-Cleanup beim Update: der Nav-Drawer listet nicht in jeder Situation alle Mitgliedschaften, eine Automatik wuerde echte Mitgliedschaften faelschlich auf "kein Mitglied" setzen.
+
 ## v0.7.0 (2026-08-29)
 - Feature: **Slots pro Community.** In den Optionen bekommt jede Community ein Slot-Dropdown: **Fest** (taeglich im Rundlauf), **Skim** (erscheint erst wieder, wenn 14 Tage seit dem letzten Besuch vergangen sind) oder **Aus** (nie im Rundlauf). Damit bildet der Rundlauf die tatsaechliche Crawl-Routine ab, statt jede je gesehene Community gleich zu gewichten.
 - Rundlauf: feste Slots stehen oben, dann Communities ohne Slot, dann faellige Skim-Slots. Badge `F` / `S` zeigt den Slot in der Zeile.

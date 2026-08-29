@@ -226,6 +226,31 @@ async function clearCommunityNames() {
   showStatus(`Namen von ${slugs.length} Communities geleert`);
 }
 
+/**
+ * Setzt `isMember` auf allen Communities zurueck. Noetig, weil Versionen vor
+ * v0.7.1 jede nur besuchte Community als Mitgliedschaft markiert haben.
+ * Bewusst kein Auto-Cleanup beim Update: Skools Nav-Drawer listet nicht in
+ * jeder Situation alle Mitgliedschaften: eine Automatik wuerde echte
+ * Mitgliedschaften auf "kein Mitglied" setzen. Nach dem Reset fuellt der
+ * Nav-Scan die Flags ueber die naechsten Skool-Besuche korrekt wieder auf.
+ */
+async function resetMemberships() {
+  const { communities = {} } = await chrome.storage.local.get({ communities: {} });
+  const slugs = Object.keys(communities);
+  if (!slugs.length) {
+    showStatus("Keine Communities erfasst");
+    return;
+  }
+  const markiert = slugs.filter(s => communities[s].isMember === true).length;
+  if (!confirm(`Mitgliedschafts-Markierung von ${markiert} Community(s) zurücksetzen? Namen, Besuchshistorie, Sprache, Punkte und Slots bleiben erhalten. Beim nächsten Skool-Besuch werden echte Mitgliedschaften aus deiner Skool-Navigation neu erkannt.`)) return;
+  for (const slug of slugs) {
+    delete communities[slug].isMember;
+  }
+  await chrome.storage.local.set({ communities });
+  renderCommunities(communities);
+  showStatus(`Mitgliedschaften zurückgesetzt (${markiert} Markierungen entfernt)`);
+}
+
 function showStatus(msg) {
   const el = $("status");
   el.textContent = msg;
@@ -368,6 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("reset").addEventListener("click", reset);
   $("reset-communities").addEventListener("click", resetCommunities);
   if ($("clear-names")) $("clear-names").addEventListener("click", clearCommunityNames);
+  if ($("reset-memberships")) $("reset-memberships").addEventListener("click", resetMemberships);
   if ($("export-summary")) $("export-summary").addEventListener("click", () => exportSummary(24, "Tagesüberblick"));
   if ($("export-weekly")) $("export-weekly").addEventListener("click", () => exportSummary(24 * 7, "Wochenüberblick"));
 
