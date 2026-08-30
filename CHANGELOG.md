@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.8 (2026-08-30)
+- Fix: **Mitgliedschaften werden zuverlaessig erkannt.** `isMember` kam bisher ausschliesslich aus dem Nav-Scan. Skool haelt die eigene Community-Liste aber in einem Dropdown, das im geschlossenen Zustand gar nicht im DOM steht — `memberSlugs` blieb dadurch in der Praxis leer, kein Eintrag bekam je ein "Mitglied"-Abzeichen, und der Filter "Nur eigene Mitgliedschaften" blendete kommentarlos **alles** aus.
+- Neu entscheidet beim Besuch der Community-Root die Gegenprobe aus v0.7.1: **kein Beitreten-Knopf = Mitglied**. Das ist dasselbe Signal, das schon Fehlmarkierungen verhindert, jetzt auch in positiver Richtung. Bewusst nur auf der Root-Seite — auf Post-Detail- und Unterseiten fehlt der Knopf auch Nichtmitgliedern.
+- Damit ist die Kette aus v0.7.1, v0.7.3, v0.7.7 und v0.7.8 abgeschlossen: keine Fehlmarkierungen, keine Systemseiten, keine Empfehlungen, und die echten Mitgliedschaften stehen endlich drin.
+
 ## v0.7.7 (2026-08-30)
 - Bugfix: **Skools Empfehlungen landeten im Rundlauf.** Der Block "Suggested communities" in der rechten Spalte jeder Community-Seite wurde vom Link-Scan als eigene Communities erfasst. Die Eintraege standen dauerhaft unter "Noch offen heute" mit dem Vermerk "noch nie" und liessen sich nie abhaken — man besucht sie ja nicht. Empfehlungs- und Discovery-Bloecke werden jetzt anhand ihrer Ueberschrift uebersprungen.
 - Zusammen mit v0.7.3 (Footer-Links) ist damit die zweite grosse Quelle fuer zugewachsene Community-Listen geschlossen.

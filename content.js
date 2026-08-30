@@ -1,6 +1,12 @@
 /**
- * Skool Helper – Content Script (v0.7.7)
+ * Skool Helper – Content Script (v0.7.8)
  *
+ * v0.7.8: Mitgliedschaften werden endlich zuverlaessig erkannt. Bisher kam
+ *         `isMember` nur aus dem Nav-Scan — und Skool haelt die eigene
+ *         Community-Liste in einem Dropdown, das geschlossen nicht im DOM
+ *         steht. Der Filter "Nur eigene Mitgliedschaften" blendete deshalb
+ *         alles aus. Jetzt entscheidet auf der Community-Root die
+ *         Gegenprobe: kein Beitreten-Knopf = Mitglied.
  * v0.7.7: Bugfix — Skools Empfehlungsblock "Suggested communities" (rechte
  *         Spalte) wurde vom Link-Scan als eigene Communities eingesammelt.
  *         Die Eintraege standen dauerhaft als "noch nie" im Rundlauf und
@@ -429,6 +435,17 @@
     }
     if (!entry.name) entry.name = slug;
     entry.lastVisit = Date.now();
+    // Positive Mitgliedschafts-Erkennung (v0.7.8). Der Nav-Scan allein
+    // reicht nicht: Skool haelt die eigene Community-Liste in einem
+    // Dropdown, das geschlossen gar nicht im DOM steht — `memberSlugs`
+    // blieb dadurch dauerhaft leer und der Filter "Nur eigene
+    // Mitgliedschaften" blendete alles aus.
+    // Verlaesslicher ist die Gegenprobe: Wer auf der Community-Root keinen
+    // Beitreten-Knopf sieht, ist Mitglied. Bewusst nur auf der Root-Seite —
+    // auf Post-Detail- und Unterseiten fehlt der Knopf auch Fremden.
+    if (isOnCommunityRoot) {
+      entry.isMember = !hasJoinButton();
+    }
     if (!entry.language || entry.languageSource !== "manual") {
       const lang = detectLanguage();
       if (lang) {
