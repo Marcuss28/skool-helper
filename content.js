@@ -1,6 +1,11 @@
 /**
- * Skool Helper – Content Script (v0.7.6)
+ * Skool Helper – Content Script (v0.7.7)
  *
+ * v0.7.7: Bugfix — Skools Empfehlungsblock "Suggested communities" (rechte
+ *         Spalte) wurde vom Link-Scan als eigene Communities eingesammelt.
+ *         Die Eintraege standen dauerhaft als "noch nie" im Rundlauf und
+ *         liessen sich nie abhaken. Empfehlungs- und Discovery-Bloecke
+ *         werden jetzt uebersprungen.
  * v0.7.6: Bugfix Spracherkennung — `<html lang>` stand an erster Stelle,
  *         beschreibt aber die UI-Sprache des Kontos, nicht die der
  *         Community. Alle Communities bekamen dadurch dieselbe Sprache und
@@ -466,6 +471,11 @@
     const links = document.querySelectorAll('a[href^="/"], a[href*="skool.com/"]');
     let added = false;
     links.forEach(a => {
+      // v0.7.7: Skools eigene Empfehlungsblöcke überspringen. "Suggested
+      // communities" in der rechten Spalte und die Discovery-Kacheln sind
+      // *fremde* Communities — sie landeten bisher im Rundlauf und liessen
+      // sich nie abhaken, weil man sie nie besucht.
+      if (inVorschlagsBlock(a)) return;
       let href;
       try {
         href = new URL(a.href, location.origin);
@@ -534,6 +544,27 @@
     for (const n of nodes) {
       const t = (n.textContent || "").trim().toLowerCase();
       if (t.length <= 20 && LABELS.has(t)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Liegt der Link in einem Empfehlungsblock von Skool?
+   * Prueft die naechsten Elternebenen auf eine der bekannten Ueberschriften.
+   * Bewusst nur die ersten Zeichen des Blocktexts, damit grosse Container
+   * (main, body) nicht faelschlich anschlagen.
+   */
+  const VORSCHLAGS_TITEL = [
+    "suggested communities", "vorgeschlagene communities", "empfohlene communities",
+    "discover communities", "communitys entdecken", "communities entdecken",
+    "build your own community", "erstelle deine eigene"
+  ];
+  function inVorschlagsBlock(a) {
+    let el = a.parentElement;
+    for (let i = 0; i < 6 && el; i++) {
+      const t = (el.innerText || "").trim().toLowerCase().slice(0, 40);
+      if (t && VORSCHLAGS_TITEL.some(v => t.startsWith(v))) return true;
+      el = el.parentElement;
     }
     return false;
   }

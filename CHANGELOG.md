@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.7.7 (2026-08-30)
+- Bugfix: **Skools Empfehlungen landeten im Rundlauf.** Der Block "Suggested communities" in der rechten Spalte jeder Community-Seite wurde vom Link-Scan als eigene Communities erfasst. Die Eintraege standen dauerhaft unter "Noch offen heute" mit dem Vermerk "noch nie" und liessen sich nie abhaken — man besucht sie ja nicht. Empfehlungs- und Discovery-Bloecke werden jetzt anhand ihrer Ueberschrift uebersprungen.
+- Zusammen mit v0.7.3 (Footer-Links) ist damit die zweite grosse Quelle fuer zugewachsene Community-Listen geschlossen.
+- Bestehende Fehleintraege bleiben stehen und muessen einmalig ueber "Entfernen" aus der Liste geworfen werden.
+
 ## v0.7.6 (2026-08-29)
 - Bugfix: **Die Spracherkennung las zuerst `<html lang>`.** Das beschreibt die UI-Sprache des Skool-Kontos, nicht die Sprache der Community — Skool liefert dort durchgaengig denselben Wert. Folge: *alle* Communities bekamen dieselbe Sprache (bei englischer Oberflaeche auch die deutschen), und der Sprachfilter "Nur deutsche Communities" liess nichts durch. Jetzt entscheidet der tatsaechliche Seiteninhalt; `<html lang>` ist nur noch Rueckfallebene.
 - Bugfix im selben Zug: Die **eigene Sidebar wird aus der Textprobe herausgerechnet.** Ihre Beschriftungen sind durchgehend deutsch ("Community-Rundlauf", "Noch offen heute", "Gemerkt") und haetten jede Seite in Richtung Deutsch gezogen, sobald die Sidebar sichtbar ist — der Fix haette den Fehler sonst nur umgedreht.
